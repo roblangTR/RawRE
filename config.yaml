@@ -1,0 +1,90 @@
+# News Edit Agent Configuration
+
+# Storage paths
+storage:
+  database_path: "./data/shots.db"
+  proxy_dir: "./data/proxies"
+  thumb_dir: "./data/thumbnails"
+  output_dir: "./data/outputs"
+
+# Video processing
+video:
+  shot_detection:
+    method: "histogram"  # histogram, scene, or hybrid
+    threshold: 0.7  # 0.0-1.0, higher = more sensitive
+    min_shot_duration_sec: 0.5
+  keyframes:
+    count: 1  # keyframes per shot
+    format: "jpg"
+    quality: 85
+  proxy:
+    enabled: true
+    width: 640
+    fps: 12
+
+# Audio transcription
+audio:
+  whisper_model: "base"  # tiny, base, small, medium, large
+  language: "en"
+  word_timestamps: true
+
+# Embeddings
+embeddings:
+  text_model: "sentence-transformers/all-MiniLM-L6-v2"
+  visual_model: "openai/clip-vit-base-patch32"
+  batch_size: 32
+
+# Vector search
+vector_search:
+  faiss_index_type: "HNSW"
+  hnsw_m: 32
+  hnsw_ef_construction: 200
+  hnsw_ef_search: 100
+
+# Shot classification
+classification:
+  sot_min_speech_duration: 3.0  # seconds
+  sot_requires_face: true
+  gv_max_speech_duration: 2.0
+
+# Working set
+working_set:
+  cutaway_window_minutes: 10
+  same_location_required: true
+  max_shots_per_story: 1000
+
+# LLM configuration
+llm:
+  provider: "claude"  # claude, openai, etc.
+  model: "claude-3-5-sonnet-20241022"
+  temperature: 0.1
+  max_tokens: 4096
+  timeout: 60
+
+# Agent behavior
+agent:
+  default_duration_sec: 90
+  min_beats: 5
+  max_beats: 8
+  max_cutaways_per_beat: 2
+  spine_chronology_strict: true
+
+# Editorial rules
+editorial:
+  enforce_chronology: true
+  enforce_location_consistency: true
+  cutaway_max_time_delta_minutes: 10
+  quote_integrity_check: true
+
+# Output formats
+output:
+  edl_format: "CMX3600"
+  fcpxml_version: "1.9"
+  include_thumbnails: true
+  include_notes: true
+
+# API server
+api:
+  host: "127.0.0.1"
+  port: 8000
+  reload: true
