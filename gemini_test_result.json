@@ -1,0 +1,20 @@
+{
+  "enhanced_description": "The shot opens with a wide view of a coastal landscape under a clear blue sky. In the foreground, three stacks of white boxes, each adorned with a French flag, are neatly arranged on a dark blue cloth-covered table. To the left of these boxes, a red Turkish flag with a white crescent and star stands tall, fluttering gently in the breeze. On the right, a white flag with a red circular emblem and Turkish text, likely related to the \u00c7anakkale Wars, also stands upright. The flags frame the boxes, drawing attention to them. Behind the table and flags, a calm, expansive blue sea stretches out to the horizon, meeting a distant landmass under the bright sky. The coastline in the mid-ground shows some rocky terrain and what appears to be construction or historical ruins. As the video progresses, a person holding a camera on a tripod enters the frame from the left, positioning themselves to film the scene, adding a dynamic element to the otherwise static initial composition.",
+  "shot_type": "establishing",
+  "shot_size": "wide",
+  "camera_movement": "static",
+  "composition": "The shot uses a wide-angle to capture the scene, with the horizon line positioned roughly on the upper third, adhering to the rule of thirds. The flags and boxes create a strong foreground element, framing the expansive sea and distant land. The arrangement of the boxes is symmetrical, while the flags provide vertical accents on either side. The entry of the cameraman later adds an asymmetrical human element.",
+  "lighting": "Natural, bright, and even lighting from the sun, indicating a clear day. The light creates soft shadows, suggesting the sun is high in the sky.",
+  "primary_subjects": [
+    "French flag boxes",
+    "Turkish flag",
+    "\u00c7anakkale Wars flag",
+    "sea",
+    "cameraman"
+  ],
+  "action_description": "Initially, the scene is static, showcasing the flags, boxes, and the sea. Later, a cameraman enters the frame from the left and sets up to film the scene.",
+  "visual_quality": "excellent",
+  "news_context": "establishing",
+  "tone": "neutral",
+  "confidence": 0.95
+}

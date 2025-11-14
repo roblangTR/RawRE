@@ -9,7 +9,7 @@ import logging
 from typing import Dict, List, Optional
 import json
 
-from agent.llm_client import LLMClient
+from agent.llm_client import ClaudeClient
 from agent.system_prompts import get_system_prompt
 from agent.working_set import WorkingSetBuilder
 
@@ -25,7 +25,7 @@ class Planner:
     """Plans story structure from editorial brief."""
     
     def __init__(self, 
-                 llm_client: LLMClient,
+                 llm_client: ClaudeClient,
                  working_set_builder: WorkingSetBuilder):
         """
         Initialize planner.
@@ -85,15 +85,18 @@ class Planner:
         system_prompt = get_system_prompt('planner')
         
         try:
-            response = self.llm_client.generate(
-                prompt=context,
+            response = self.llm_client.chat(
+                query=context,
                 system_prompt=system_prompt,
                 max_tokens=2000,
-                temperature=0.7
+                module='planner'
             )
             
+            # Extract content from response
+            response_text = response.get('content', response)
+            
             # Step 4: Parse response
-            plan = self._parse_plan_response(response, story_slug, brief, target_duration)
+            plan = self._parse_plan_response(response_text, story_slug, brief, target_duration)
             
             logger.info(f"[PLANNER] ✓ Plan created with {len(plan['beats'])} beats")
             
@@ -370,15 +373,18 @@ Return the updated plan as JSON.
         system_prompt = get_system_prompt('planner')
         
         try:
-            response = self.llm_client.generate(
-                prompt=context,
+            response = self.llm_client.chat(
+                query=context,
                 system_prompt=system_prompt,
                 max_tokens=2000,
-                temperature=0.7
+                module='planner'
             )
             
+            # Extract content from response
+            response_text = response.get('content', response)
+            
             refined_plan = self._parse_plan_response(
-                response,
+                response_text,
                 plan['story_slug'],
                 plan['brief'],
                 plan['target_duration']

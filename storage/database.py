@@ -44,7 +44,19 @@ class ShotsDatabase:
                 embedding_visual BLOB,
                 proxy_path TEXT,
                 thumb_path TEXT,
-                created_at REAL DEFAULT (julianday('now'))
+                created_at REAL DEFAULT (julianday('now')),
+                gemini_description TEXT,
+                gemini_shot_type TEXT,
+                gemini_shot_size TEXT,
+                gemini_camera_movement TEXT,
+                gemini_composition TEXT,
+                gemini_lighting TEXT,
+                gemini_subjects TEXT,
+                gemini_action TEXT,
+                gemini_quality TEXT,
+                gemini_context TEXT,
+                gemini_tone TEXT,
+                gemini_confidence REAL
             )
         """)
         
@@ -87,12 +99,21 @@ class ShotsDatabase:
         embedding_text = pickle.dumps(shot_data.get('embedding_text')) if shot_data.get('embedding_text') is not None else None
         embedding_visual = pickle.dumps(shot_data.get('embedding_visual')) if shot_data.get('embedding_visual') is not None else None
         
+        # Serialize Gemini subjects list if present
+        gemini_subjects = None
+        if shot_data.get('gemini_subjects'):
+            gemini_subjects = ','.join(shot_data['gemini_subjects']) if isinstance(shot_data['gemini_subjects'], list) else shot_data['gemini_subjects']
+        
         cursor.execute("""
             INSERT INTO shots (
                 story_slug, filepath, capture_ts, tc_in, tc_out, fps,
                 duration_ms, shot_type, asr_text, asr_summary, has_face,
-                location, embedding_text, embedding_visual, proxy_path, thumb_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                location, embedding_text, embedding_visual, proxy_path, thumb_path,
+                gemini_description, gemini_shot_type, gemini_shot_size,
+                gemini_camera_movement, gemini_composition, gemini_lighting,
+                gemini_subjects, gemini_action, gemini_quality,
+                gemini_context, gemini_tone, gemini_confidence
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             shot_data['story_slug'],
             shot_data['filepath'],
@@ -109,7 +130,19 @@ class ShotsDatabase:
             embedding_text,
             embedding_visual,
             shot_data.get('proxy_path'),
-            shot_data.get('thumb_path')
+            shot_data.get('thumb_path'),
+            shot_data.get('gemini_description'),
+            shot_data.get('gemini_shot_type'),
+            shot_data.get('gemini_shot_size'),
+            shot_data.get('gemini_camera_movement'),
+            shot_data.get('gemini_composition'),
+            shot_data.get('gemini_lighting'),
+            gemini_subjects,
+            shot_data.get('gemini_action'),
+            shot_data.get('gemini_quality'),
+            shot_data.get('gemini_context'),
+            shot_data.get('gemini_tone'),
+            shot_data.get('gemini_confidence')
         ))
         
         self.conn.commit()
@@ -137,6 +170,9 @@ class ShotsDatabase:
                 shot['embedding_text'] = pickle.loads(shot['embedding_text'])
             if shot['embedding_visual']:
                 shot['embedding_visual'] = pickle.loads(shot['embedding_visual'])
+            # Deserialize Gemini subjects
+            if shot.get('gemini_subjects'):
+                shot['gemini_subjects'] = shot['gemini_subjects'].split(',')
             return shot
         return None
     
@@ -171,6 +207,9 @@ class ShotsDatabase:
                 shot['embedding_text'] = pickle.loads(shot['embedding_text'])
             if shot['embedding_visual']:
                 shot['embedding_visual'] = pickle.loads(shot['embedding_visual'])
+            # Deserialize Gemini subjects
+            if shot.get('gemini_subjects'):
+                shot['gemini_subjects'] = shot['gemini_subjects'].split(',')
             shots.append(shot)
         
         return shots
@@ -211,6 +250,9 @@ class ShotsDatabase:
                 shot['embedding_text'] = pickle.loads(shot['embedding_text'])
             if shot['embedding_visual']:
                 shot['embedding_visual'] = pickle.loads(shot['embedding_visual'])
+            # Deserialize Gemini subjects
+            if shot.get('gemini_subjects'):
+                shot['gemini_subjects'] = shot['gemini_subjects'].split(',')
             
             if edge_type not in neighbors:
                 neighbors[edge_type] = []

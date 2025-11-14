@@ -6,12 +6,13 @@ Manages state, iterations, and refinements.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import json
 from pathlib import Path
 from datetime import datetime
+import numpy as np
 
-from agent.llm_client import OpenArenaClient
+from agent.llm_client import ClaudeClient
 from agent.planner import Planner
 from agent.picker import Picker
 from agent.verifier import Verifier
@@ -33,7 +34,7 @@ class AgentOrchestrator:
     def __init__(self,
                  database: ShotsDatabase,
                  vector_index: VectorIndex,
-                 llm_client: OpenArenaClient):
+                 llm_client: ClaudeClient):
         """
         Initialize orchestrator.
         
@@ -255,6 +256,29 @@ class AgentOrchestrator:
         
         return "\n".join(feedback_parts)
     
+    def _make_json_serializable(self, obj: Any) -> Any:
+        """
+        Convert objects to JSON-serializable format.
+        
+        Args:
+            obj: Object to convert
+            
+        Returns:
+            JSON-serializable version
+        """
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, dict):
+            return {key: self._make_json_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._make_json_serializable(item) for item in obj]
+        else:
+            return obj
+    
     def save_result(self, result: Dict, output_path: str):
         """
         Save compilation result to JSON file.
@@ -266,8 +290,11 @@ class AgentOrchestrator:
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         
+        # Make result JSON-serializable
+        serializable_result = self._make_json_serializable(result)
+        
         with open(output_file, 'w') as f:
-            json.dump(result, f, indent=2)
+            json.dump(serializable_result, f, indent=2)
         
         logger.info(f"[ORCHESTRATOR] Result saved to {output_path}")
     

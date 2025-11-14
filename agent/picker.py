@@ -9,7 +9,7 @@ import logging
 from typing import Dict, List, Optional
 import json
 
-from agent.llm_client import OpenArenaClient
+from agent.llm_client import ClaudeClient
 from agent.system_prompts import get_system_prompt
 from agent.working_set import WorkingSetBuilder
 
@@ -25,7 +25,7 @@ class Picker:
     """Picks specific shots for story beats."""
     
     def __init__(self,
-                 llm_client: OpenArenaClient,
+                 llm_client: ClaudeClient,
                  working_set_builder: WorkingSetBuilder):
         """
         Initialize picker.
@@ -78,15 +78,18 @@ class Picker:
         system_prompt = get_system_prompt('picker')
         
         try:
-            response = self.llm_client.generate(
-                prompt=context,
+            response = self.llm_client.chat(
+                query=context,
                 system_prompt=system_prompt,
                 max_tokens=1500,
-                temperature=0.5  # Lower temperature for more consistent selection
+                module='picker'
             )
             
+            # Extract content from response
+            response_text = response.get('content', response)
+            
             # Step 4: Parse response
-            selection = self._parse_selection_response(response, beat, working_set)
+            selection = self._parse_selection_response(response_text, beat, working_set)
             
             logger.info(f"[PICKER] ✓ Selected {len(selection['shots'])} shots")
             

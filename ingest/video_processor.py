@@ -229,6 +229,47 @@ class VideoProcessor:
         
         return str(output_path)
     
+    def generate_gemini_proxy(self, video_path: Path, output_dir: Path) -> str:
+        """
+        Generate ultra-low bitrate proxy specifically for Gemini analysis.
+        
+        Target: 1 Mbit/s video, 480p, original frame rate, with audio.
+        Smaller raster for reduced file size while maintaining temporal and audio information.
+        
+        Args:
+            video_path: Path to original video
+            output_dir: Directory to save proxy
+            
+        Returns:
+            Path to generated proxy file
+        """
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_path = output_dir / f"gemini_proxy_{video_path.stem}.mp4"
+        
+        # Skip if already exists
+        if output_path.exists():
+            return str(output_path)
+        
+        cmd = [
+            'ffmpeg',
+            '-i', str(video_path),
+            '-vf', 'scale=480:-2',  # 480p width, maintain aspect ratio
+            '-c:v', 'libx264',
+            '-preset', 'fast',
+            '-b:v', '1M',  # 1 Mbit/s target video bitrate
+            '-maxrate', '1M',
+            '-bufsize', '2M',
+            '-c:a', 'aac',  # Keep audio with AAC codec
+            '-b:a', '64k',  # 64 kbit/s audio bitrate
+            '-y',
+            str(output_path)
+        ]
+        
+        subprocess.run(cmd, capture_output=True, check=True)
+        
+        return str(output_path)
+    
     def generate_thumbnail(self, keyframe_path: str, output_dir: Path, max_width: int = 320) -> str:
         """Generate thumbnail from keyframe."""
         output_dir.mkdir(parents=True, exist_ok=True)

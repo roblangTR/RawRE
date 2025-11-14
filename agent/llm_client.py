@@ -46,7 +46,8 @@ class ClaudeClient:
              workflow_id: Optional[str] = None,
              system_prompt: Optional[str] = None,
              max_tokens: int = 4096,
-             context: Optional[str] = None) -> Dict[str, Any]:
+             context: Optional[str] = None,
+             module: Optional[str] = None) -> Dict[str, Any]:
         """
         Send an inference request to Open Arena.
         
@@ -56,18 +57,27 @@ class ClaudeClient:
             system_prompt: Optional system prompt
             max_tokens: Maximum tokens in response
             context: Optional context string
+            module: Optional module name ('planner', 'picker', 'verifier') to use module-specific workflow
             
         Returns:
             Response dictionary with 'content', 'usage', etc.
         """
         self._ensure_token()
         
-        # Use default workflow if not provided
+        # Use module-specific workflow if module is specified
         if not workflow_id:
             import os
-            workflow_id = os.getenv('WORKFLOW_ID')
+            if module:
+                # Try module-specific workflow ID first
+                workflow_id = os.getenv(f'{module.upper()}_WORKFLOW_ID')
+                if workflow_id:
+                    logger.info(f"[CLAUDE] Using {module} workflow: {workflow_id}")
+            
+            # Fall back to default workflow
             if not workflow_id:
-                raise Exception("No workflow_id provided and WORKFLOW_ID not set in environment")
+                workflow_id = os.getenv('WORKFLOW_ID')
+                if not workflow_id:
+                    raise Exception("No workflow_id provided and WORKFLOW_ID not set in environment")
         
         # Construct request payload per Open Arena API spec
         payload = {
@@ -111,9 +121,20 @@ class ClaudeClient:
             result = response.json()
             
             # Extract content from Open Arena response
-            # The response format may vary, adapt as needed
-            content = result.get("response") or result.get("answer") or str(result)
-            logger.info(f"[CLAUDE] Response received ({len(content)} chars)")
+            # Open Arena returns nested structure: result.answer.{node_id}
+            content = None
+            if "result" in result and "answer" in result["result"]:
+                # Get the first answer from any LLM node
+                answers = result["result"]["answer"]
+                if answers:
+                    # Get first answer value
+                    content = next(iter(answers.values()))
+            
+            # Fallback to other possible response formats
+            if not content:
+                content = result.get("response") or result.get("answer") or str(result)
+            
+            logger.info(f"[CLAUDE] Response received ({len(str(content))} chars)")
             
             return {
                 "content": content,

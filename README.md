@@ -66,28 +66,46 @@ Access API docs at http://localhost:8000/docs
 ## Project Structure
 
 ```
-news-edit-agent/
+RAWRE/
+├── agent/               # AI editing agents
+│   ├── llm_client.py    # Claude API via Open Arena
+│   ├── planner.py       # Creates narrative structure
+│   ├── picker.py        # Selects shots semantically
+│   ├── verifier.py      # Quality control
+│   └── orchestrator.py  # Manages workflow
 ├── ingest/              # Video processing pipeline
-│   ├── video_processor.py
-│   ├── transcriber.py
-│   ├── embedder.py
-│   └── shot_analyzer.py
-├── storage/             # Database and vector indices
-│   ├── database.py
-│   └── vector_index.py
-├── agent/               # LLM orchestration
-│   ├── llm_client.py
-│   ├── tools.py
-│   ├── planner.py
-│   ├── picker.py
-│   └── verifier.py
-├── output/              # Format writers
-│   ├── edl_writer.py
-│   └── fcpxml_writer.py
-├── api/                 # REST API
-│   └── server.py
+│   ├── video_processor.py  # Shot detection
+│   ├── gemini_analyzer.py  # AI visual analysis
+│   ├── transcriber.py      # Speech-to-text
+│   ├── embedder.py         # Semantic embeddings
+│   └── orchestrator.py     # Ingest workflow
+├── storage/             # Data persistence
+│   ├── database.py      # SQLite with metadata
+│   └── vector_index.py  # FAISS semantic search
+├── output/              # Export formats
+│   ├── edl_writer.py    # CMX 3600 EDL
+│   └── fcpxml_writer.py # Final Cut Pro XML
+├── api/                 # REST API (future)
+├── tests/               # Unit & integration tests
+├── scripts/             # Test & utility scripts
+├── docs/                # Complete documentation
 ├── cli.py               # Command-line interface
-└── config.yaml          # Configuration
+├── config.yaml          # System configuration
+└── requirements.txt     # Python dependencies
+```
+
+## Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[Getting Started](docs/CONFIGURATION_GUIDE.md)** - Setup and configuration
+- **[Architecture](docs/PROJECT_SUMMARY.md)** - Technical overview
+- **[Gemini Integration](docs/GEMINI_INTEGRATION.md)** - AI visual analysis
+- **[Open Arena Setup](docs/OPEN_ARENA_SETUP_GUIDE.md)** - API configuration
+- **[Prototype Status](docs/PROTOTYPE_COMPLETE.md)** - Current capabilities
+- **[Test Scripts](scripts/README.md)** - Testing and utilities
+
+See [`docs/README.md`](docs/README.md) for the complete documentation index.
 ```
 
 ## Configuration
@@ -109,7 +127,34 @@ The agent enforces broadcast news standards:
 
 ## Development
 
-See `news_rushes_edit_agent_design_v2.md` for detailed system design.
+See [`docs/news_rushes_edit_agent_design_v2.md`](docs/news_rushes_edit_agent_design_v2.md) for detailed system design.
+
+### Testing
+
+Run the test suite:
+```bash
+./run_tests.sh
+```
+
+Or run specific test modules:
+```bash
+pytest tests/test_storage.py -v
+pytest tests/test_agents.py -v
+pytest tests/test_output.py -v
+```
+
+See [`tests/README.md`](tests/README.md) for test documentation.
+
+### Test Scripts
+
+Utility scripts for testing and development are in [`scripts/`](scripts/):
+
+- `test_auth.py` - Verify Open Arena authentication
+- `test_gemini_analysis.py` - Test AI visual analysis
+- `ingest_all_rushes.py` - Batch ingest footage
+- `test_2min_edit.py` - Create demo edit
+
+See [`scripts/README.md`](scripts/README.md) for complete script documentation.
 
 ## License
 

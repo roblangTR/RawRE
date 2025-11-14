@@ -76,6 +76,12 @@ editorial:
   cutaway_max_time_delta_minutes: 10
   quote_integrity_check: true
 
+# Gemini video analysis (via Open Arena)
+gemini:
+  enabled: true  # Set to true to enable Gemini analysis
+  workflow_id: "81a571bb-1096-4156-bd09-5ee7fd9047ce"  # Open Arena Gemini workflow
+  use_proxy_clips: true  # Send proxy videos instead of full resolution
+
 # Output formats
 output:
   edl_format: "CMX3600"

@@ -9,7 +9,7 @@ import logging
 from typing import Dict, List, Optional
 import json
 
-from agent.llm_client import OpenArenaClient
+from agent.llm_client import ClaudeClient
 from agent.system_prompts import get_system_prompt
 
 # Configure logging
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class Verifier:
     """Verifies edit quality and compliance."""
     
-    def __init__(self, llm_client: OpenArenaClient):
+    def __init__(self, llm_client: ClaudeClient):
         """
         Initialize verifier.
         
@@ -62,15 +62,18 @@ class Verifier:
         system_prompt = get_system_prompt('verifier')
         
         try:
-            response = self.llm_client.generate(
-                prompt=context,
+            response = self.llm_client.chat(
+                query=context,
                 system_prompt=system_prompt,
                 max_tokens=2000,
-                temperature=0.3  # Low temperature for consistent evaluation
+                module='verifier'
             )
             
+            # Extract content from response
+            response_text = response.get('content', response)
+            
             # Parse response
-            verification = self._parse_verification_response(response, plan, selections)
+            verification = self._parse_verification_response(response_text, plan, selections)
             
             logger.info(f"[VERIFIER] ✓ Verification complete")
             logger.info(f"[VERIFIER] Overall Score: {verification.get('overall_score', 'N/A')}/10")

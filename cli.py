@@ -12,6 +12,12 @@ import yaml
 from pathlib import Path
 
 from ingest.orchestrator import IngestOrchestrator
+from storage.database import ShotsDatabase
+from storage.vector_index import VectorIndex
+from agent.llm_client import OpenArenaClient
+from agent.orchestrator import AgentOrchestrator
+from output.edl_writer import EDLWriter
+from output.fcpxml_writer import FCPXMLWriter
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
@@ -115,15 +121,96 @@ def cmd_compile(args):
     print("Story:", args.story)
     print("Brief:", args.brief)
     print("Duration:", args.duration, "seconds")
+    if args.output:
+        print("Output:", args.output)
     print()
     
-    print("Note: Compile functionality requires Phase 2 & 3 completion")
-    print("  - Working set builder")
-    print("  - Agent modules (planner, picker, verifier)")
-    print("  - Output writers (EDL/FCPXML)")
-    print()
-    
-    return 0
+    try:
+        # Load configuration
+        config = load_config(args.config)
+        
+        # Initialize components
+        print("Initializing components...")
+        db_path = config.get('database', {}).get('path', './data/shots.db')
+        database = ShotsDatabase(db_path)
+        
+        vector_dim = config.get('embeddings', {}).get('dimension', 384)
+        vector_index = VectorIndex(dimension=vector_dim)
+        
+        llm_client = OpenArenaClient()
+        
+        # Create orchestrator
+        orchestrator = AgentOrchestrator(database, vector_index, llm_client)
+        
+        # Compile edit
+        print("Compiling edit...")
+        result = orchestrator.compile_edit(
+            story_slug=args.story,
+            brief=args.brief,
+            target_duration=args.duration,
+            max_iterations=3,
+            min_verification_score=7.0
+        )
+        
+        # Print summary
+        print()
+        print(orchestrator.get_edit_summary(result))
+        
+        # Save result JSON
+        result_path = f"./output/{args.story}_result.json"
+        orchestrator.save_result(result, result_path)
+        print(f"\n✓ Result saved to {result_path}")
+        
+        # Export to EDL/FCPXML if output specified
+        if args.output:
+            output_path = Path(args.output)
+            ext = output_path.suffix.lower()
+            
+            if ext == '.edl':
+                print(f"\nExporting to EDL: {output_path}")
+                edl_writer = EDLWriter()
+                edl_path = edl_writer.write_from_result(result, str(output_path))
+                print(f"✓ EDL written to {edl_path}")
+                
+                # Validate
+                validation = edl_writer.validate_edl(edl_path)
+                if validation['valid']:
+                    print(f"✓ EDL validation passed")
+                else:
+                    print(f"✗ EDL validation failed: {validation['errors']}")
+                    
+            elif ext == '.fcpxml':
+                print(f"\nExporting to FCPXML: {output_path}")
+                fcpxml_writer = FCPXMLWriter()
+                fcpxml_path = fcpxml_writer.write_from_result(result, str(output_path))
+                print(f"✓ FCPXML written to {fcpxml_path}")
+                
+                # Validate
+                validation = fcpxml_writer.validate_fcpxml(fcpxml_path)
+                if validation['valid']:
+                    print(f"✓ FCPXML validation passed")
+                else:
+                    print(f"✗ FCPXML validation failed: {validation['errors']}")
+            else:
+                print(f"\nWarning: Unknown output format '{ext}', skipping export")
+                print("Supported formats: .edl, .fcpxml")
+        
+        print()
+        print("=" * 70)
+        if result['approved']:
+            print("✓ Edit compilation complete and approved!")
+        else:
+            print("✗ Edit compilation complete but not approved")
+        print("=" * 70)
+        
+        return 0 if result['approved'] else 1
+        
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
 
 
 def cmd_stats(args):

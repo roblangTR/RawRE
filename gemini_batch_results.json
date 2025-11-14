@@ -1,0 +1,99 @@
+{
+  "total_videos": 3,
+  "successful": 3,
+  "failed": 0,
+  "results": [
+    {
+      "video_file": "Test_Rushes/VID_20220424_120853.mp4",
+      "shot_data": {
+        "shot_id": 1,
+        "tc_in": "00:00:01:00",
+        "tc_out": "00:00:01:10",
+        "duration_ms": 10000,
+        "video_file": "Test_Rushes/VID_20220424_120853.mp4"
+      },
+      "analysis": {
+        "enhanced_description": "A medium-wide shot captures a solemn ceremony in a cemetery. In the foreground, a priest in a black stole and a military officer in a tan uniform are carefully lowering a small, rectangular, metallic casket into a freshly dug grave. Another military officer, seen from behind, is already in the grave, assisting with the placement. In the background, rows of small, house-shaped grave markers and manicured green bushes extend into the distance, with a tall, white monument visible further back. Several other individuals, some in civilian clothes and some in military uniforms, observe the ceremony from a distance. The scene is brightly lit by natural sunlight.",
+        "shot_type": "action",
+        "shot_size": "medium_wide",
+        "camera_movement": "static",
+        "composition": "The shot is framed to center the main action of lowering the casket, with the priest and two officers forming a triangular composition. The rows of graves and bushes in the background provide depth and context to the cemetery setting. The bright sunlight creates clear shadows, adding to the visual depth.",
+        "lighting": "Natural daylight, bright and clear, casting distinct shadows. The overall lighting is even, illuminating the subjects and the cemetery grounds well.",
+        "primary_subjects": [
+          "priest",
+          "military officers",
+          "casket",
+          "graves",
+          "cemetery attendees"
+        ],
+        "action_description": "A priest and military officers are participating in a burial ceremony, carefully lowering a small metallic casket into a grave. Other attendees observe the solemn event.",
+        "visual_quality": "good",
+        "news_context": "main_story",
+        "tone": "somber",
+        "confidence": 0.95
+      }
+    },
+    {
+      "video_file": "Test_Rushes/VID_20220424_121027.mp4",
+      "shot_data": {
+        "shot_id": 2,
+        "tc_in": "00:00:02:00",
+        "tc_out": "00:00:02:10",
+        "duration_ms": 10000,
+        "video_file": "Test_Rushes/VID_20220424_121027.mp4"
+      },
+      "analysis": {
+        "enhanced_description": "A group of men, some in military uniforms and one in clerical attire, are gathered around a freshly dug grave in what appears to be a cemetery. One man in a dark military uniform with medals is holding a shovel, while another man in a lighter military uniform is carefully placing a metallic, rectangular object into the grave. A man in a black clerical robe is observing, holding a green folder. In the background, there are rows of small, dark crosses, indicating a burial ground. The scene is outdoors under bright daylight, with green bushes and trees visible.",
+        "shot_type": "action",
+        "shot_size": "medium_wide",
+        "camera_movement": "static",
+        "composition": "The shot is framed to show the activity around the grave, with the main subjects positioned in the mid-ground. The grave and the metallic object are central to the action. The rows of crosses in the background provide context to the setting.",
+        "lighting": "Bright natural daylight, casting clear shadows. The lighting is even, illuminating the subjects and the grave area well.",
+        "primary_subjects": [
+          "military personnel",
+          "cleric",
+          "grave",
+          "metallic object",
+          "shovels"
+        ],
+        "action_description": "Military personnel and a cleric are participating in a burial ceremony, with one soldier carefully lowering a metallic object into a grave while another holds a shovel.",
+        "visual_quality": "good",
+        "news_context": "main_story",
+        "tone": "somber",
+        "confidence": 0.95
+      }
+    },
+    {
+      "video_file": "Test_Rushes/VID_20220424_113056.mp4",
+      "shot_data": {
+        "shot_id": 3,
+        "tc_in": "00:00:03:00",
+        "tc_out": "00:00:03:10",
+        "duration_ms": 10000,
+        "video_file": "Test_Rushes/VID_20220424_113056.mp4"
+      },
+      "analysis": {
+        "enhanced_description": "Two men in military uniforms, wearing white gloves, carefully carry a rectangular, light-colored box adorned with a French flag design. They are walking along a dirt path in what appears to be a military cemetery, characterized by rows of small, manicured bushes and grave markers. A man in a yellow hard hat and orange safety vest stands nearby, observing. In the background, a tall, white monument is visible, along with numerous green bushes and trees under a clear blue sky. Other individuals are also present in the distance.",
+        "shot_type": "action",
+        "shot_size": "medium_wide",
+        "camera_movement": "static",
+        "composition": "The two men carrying the box are centrally framed, leading the eye towards the background rows of graves and the distant monument. The rows of bushes create a sense of depth and order. The bright sky provides a clear backdrop.",
+        "lighting": "Natural daylight, bright and clear. The scene is well-lit with direct sunlight, creating some shadows but overall good visibility. The colors are vibrant.",
+        "primary_subjects": [
+          "two men in military uniform",
+          "box with French flag",
+          "man in hard hat",
+          "military cemetery",
+          "grave markers",
+          "bushes",
+          "monument"
+        ],
+        "action_description": "Two uniformed men are carefully carrying a box with a French flag design through a military cemetery, possibly for a burial or ceremonial placement. A man in a hard hat observes their actions.",
+        "visual_quality": "good",
+        "news_context": "main_story",
+        "tone": "somber",
+        "confidence": 0.95
+      }
+    }
+  ]
+}
