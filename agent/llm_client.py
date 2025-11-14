@@ -42,32 +42,54 @@ class ClaudeClient:
             self.token = get_auth_token()
     
     def chat(self, 
-             messages: List[Dict[str, str]], 
+             query: str,
+             workflow_id: Optional[str] = None,
+             system_prompt: Optional[str] = None,
              max_tokens: int = 4096,
-             system: Optional[str] = None) -> Dict[str, Any]:
+             context: Optional[str] = None) -> Dict[str, Any]:
         """
-        Send a chat completion request to Claude.
+        Send an inference request to Open Arena.
         
         Args:
-            messages: List of message dicts with 'role' and 'content'
+            query: The user query/prompt
+            workflow_id: Optional workflow ID (uses default if not provided)
+            system_prompt: Optional system prompt
             max_tokens: Maximum tokens in response
-            system: Optional system prompt
+            context: Optional context string
             
         Returns:
             Response dictionary with 'content', 'usage', etc.
         """
         self._ensure_token()
         
-        # Construct request payload
+        # Use default workflow if not provided
+        if not workflow_id:
+            import os
+            workflow_id = os.getenv('WORKFLOW_ID')
+            if not workflow_id:
+                raise Exception("No workflow_id provided and WORKFLOW_ID not set in environment")
+        
+        # Construct request payload per Open Arena API spec
         payload = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": self.temperature
+            "workflow_id": workflow_id,
+            "query": query,
+            "is_persistence_allowed": False
         }
         
-        if system:
-            payload["system"] = system
+        # Add model parameters if system prompt or custom settings provided
+        if system_prompt or max_tokens != 4096:
+            payload["modelparams"] = {
+                self.model: {
+                    "temperature": str(self.temperature),
+                    "max_tokens": str(max_tokens)
+                }
+            }
+            if system_prompt:
+                payload["modelparams"][self.model]["system_prompt"] = system_prompt
+        
+        # Add context if provided
+        if context:
+            payload["context"] = context
         
         # Make API request
         headers = {
@@ -75,11 +97,11 @@ class ClaudeClient:
             "Content-Type": "application/json"
         }
         
-        logger.debug(f"[CLAUDE] Sending request with {len(messages)} messages")
+        logger.debug(f"[CLAUDE] Sending inference request to workflow {workflow_id}")
         
         try:
             response = requests.post(
-                f"{self.base_url}/chat/completions",
+                f"{self.base_url}/inference",
                 headers=headers,
                 json=payload,
                 timeout=120
@@ -88,34 +110,37 @@ class ClaudeClient:
             response.raise_for_status()
             result = response.json()
             
-            # Extract content from response
-            if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0]["message"]["content"]
-                logger.info(f"[CLAUDE] Response received ({len(content)} chars)")
-                
-                return {
-                    "content": content,
-                    "usage": result.get("usage", {}),
-                    "model": result.get("model", self.model)
-                }
-            else:
-                raise Exception("No response content in API result")
+            # Extract content from Open Arena response
+            # The response format may vary, adapt as needed
+            content = result.get("response") or result.get("answer") or str(result)
+            logger.info(f"[CLAUDE] Response received ({len(content)} chars)")
+            
+            return {
+                "content": content,
+                "usage": result.get("usage", {}),
+                "model": result.get("model", self.model),
+                "raw_response": result
+            }
                 
         except requests.exceptions.RequestException as e:
             logger.error(f"[CLAUDE] API request failed: {e}")
             raise Exception(f"Claude API request failed: {str(e)}")
     
     def chat_with_json(self,
-                      messages: List[Dict[str, str]],
+                      query: str,
+                      workflow_id: Optional[str] = None,
+                      system_prompt: Optional[str] = None,
                       max_tokens: int = 4096,
-                      system: Optional[str] = None) -> Dict[str, Any]:
+                      context: Optional[str] = None) -> Dict[str, Any]:
         """
         Send a chat request and parse JSON response.
         
         Args:
-            messages: List of message dicts
+            query: The user query/prompt
+            workflow_id: Optional workflow ID
+            system_prompt: Optional system prompt
             max_tokens: Maximum tokens in response
-            system: Optional system prompt
+            context: Optional context string
             
         Returns:
             Parsed JSON object from response
@@ -123,13 +148,13 @@ class ClaudeClient:
         # Add JSON instruction to system prompt
         json_instruction = "\n\nYou must respond with valid JSON only. Do not include any markdown formatting or explanations."
         
-        if system:
-            system = system + json_instruction
+        if system_prompt:
+            system_prompt = system_prompt + json_instruction
         else:
-            system = json_instruction
+            system_prompt = json_instruction
         
         # Get response
-        result = self.chat(messages, max_tokens, system)
+        result = self.chat(query, workflow_id, system_prompt, max_tokens, context)
         content = result["content"]
         
         # Parse JSON
@@ -156,27 +181,41 @@ class ClaudeClient:
 
 if __name__ == "__main__":
     # Test client when run directly
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    
     try:
         print("Testing Claude Client...")
         print()
+        
+        # Check for workflow ID
+        workflow_id = os.getenv('WORKFLOW_ID')
+        if not workflow_id:
+            print("✗ WORKFLOW_ID not set in .env file")
+            print("  Please add WORKFLOW_ID to your .env")
+            exit(1)
         
         client = ClaudeClient()
         
         # Test simple chat
         print("Sending test message...")
-        response = client.chat([
-            {"role": "user", "content": "Say 'Hello from Claude!' and nothing else."}
-        ])
+        response = client.chat(
+            query="Say 'Hello from Claude!' and nothing else.",
+            workflow_id=workflow_id
+        )
         
         print(f"✓ Response: {response['content']}")
-        print(f"  Tokens used: {response['usage']}")
+        print(f"  Usage: {response['usage']}")
         print()
         
         # Test JSON response
         print("Testing JSON response...")
-        json_response = client.chat_with_json([
-            {"role": "user", "content": 'Respond with JSON: {"status": "ok", "message": "test"}'}
-        ])
+        json_response = client.chat_with_json(
+            query='Respond with JSON: {"status": "ok", "message": "test"}',
+            workflow_id=workflow_id
+        )
         
         print(f"✓ JSON response: {json_response}")
         print()
