@@ -201,6 +201,28 @@ class Picker:
             lines.append(f"- Duration: {duration:.1f}s")
             lines.append(f"- Timecode: {shot['tc_in']} - {shot['tc_out']}")
             
+            # Gemini visual metadata
+            if shot.get('gemini_shot_size'):
+                lines.append(f"- Shot Size: {shot['gemini_shot_size']}")
+            if shot.get('gemini_camera_movement'):
+                lines.append(f"- Camera Movement: {shot['gemini_camera_movement']}")
+            if shot.get('gemini_composition'):
+                lines.append(f"- Composition: {shot['gemini_composition']}")
+            if shot.get('gemini_subjects'):
+                subjects = shot['gemini_subjects']
+                if isinstance(subjects, list):
+                    subjects = ', '.join(subjects)
+                lines.append(f"- Subjects: {subjects}")
+            if shot.get('gemini_action'):
+                lines.append(f"- Action: {shot['gemini_action']}")
+            if shot.get('gemini_quality'):
+                lines.append(f"- Quality: {shot['gemini_quality']}")
+            if shot.get('gemini_description'):
+                desc = shot['gemini_description'][:200]
+                if len(shot.get('gemini_description', '')) > 200:
+                    desc += "..."
+                lines.append(f"- Visual Description: {desc}")
+            
             if shot.get('relevance_score'):
                 lines.append(f"- Relevance: {shot['relevance_score']:.2f}")
             
