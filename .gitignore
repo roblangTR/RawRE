@@ -32,7 +32,29 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # Temporary files
 tmp/
 temp/
+
+# Test files and outputs
+Test_Rushes/
+output/*.json
+output/*.edl
+output/*.fcpxml
+scripts/test_*.py
+tests/
+
+# Archives
+archives/
+*.zip
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+
+# Generated files
+gemini_batch_results.json
+gemini_test_result.json
