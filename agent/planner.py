@@ -82,13 +82,9 @@ class Planner:
         # Step 3: Call LLM to create plan
         logger.info("[PLANNER] Calling LLM to create plan...")
         
-        system_prompt = get_system_prompt('planner')
-        
         try:
             response = self.llm_client.chat(
                 query=context,
-                system_prompt=system_prompt,
-                max_tokens=2000,
                 module='planner'
             )
             
@@ -158,20 +154,47 @@ class Planner:
         for shot_type, shots in shots_by_type.items():
             lines.append(f"### {shot_type} Shots ({len(shots)})")
             
-            # Show top 5 most relevant
-            top_shots = sorted(shots, 
-                             key=lambda s: s.get('relevance_score', 0), 
-                             reverse=True)[:5]
+            # Show ALL shots (not just top 5) sorted by relevance
+            sorted_shots = sorted(shots, 
+                                 key=lambda s: s.get('relevance_score', 0), 
+                                 reverse=True)
             
-            for shot in top_shots:
+            for shot in sorted_shots:
                 duration = shot['duration_ms'] / 1000.0
-                lines.append(f"- Shot {shot['shot_id']}: {duration:.1f}s")
+                lines.append(f"\n**Shot {shot['shot_id']}** ({duration:.1f}s)")
+                
+                # Include Gemini visual description (CRITICAL)
+                if shot.get('gemini_description'):
+                    lines.append(f"Visual: {shot['gemini_description']}")
+                
+                # Include longer transcript (500 chars or full text)
                 if shot.get('asr_text'):
-                    # Truncate long transcripts
-                    text = shot['asr_text'][:100]
-                    if len(shot['asr_text']) > 100:
-                        text += "..."
-                    lines.append(f"  \"{text}\"")
+                    text = shot['asr_text']
+                    if len(text) > 500:
+                        text = text[:500] + "..."
+                    lines.append(f"Audio: \"{text}\"")
+                
+                # Include additional Gemini metadata if available
+                metadata_parts = []
+                if shot.get('gemini_shot_size'):
+                    metadata_parts.append(f"Size: {shot['gemini_shot_size']}")
+                if shot.get('gemini_camera_movement'):
+                    metadata_parts.append(f"Movement: {shot['gemini_camera_movement']}")
+                if shot.get('gemini_subjects'):
+                    subjects = shot['gemini_subjects']
+                    if isinstance(subjects, list):
+                        subjects = ', '.join(subjects)
+                    metadata_parts.append(f"Subjects: {subjects}")
+                if shot.get('gemini_action'):
+                    metadata_parts.append(f"Action: {shot['gemini_action']}")
+                
+                if metadata_parts:
+                    lines.append(f"Details: {' | '.join(metadata_parts)}")
+                
+                # Include relevance score for context
+                if shot.get('relevance_score'):
+                    lines.append(f"Relevance: {shot['relevance_score']:.3f}")
+            
             lines.append("")
         
         lines.append("## Task")
@@ -357,7 +380,7 @@ class Planner:
         logger.info(f"[PLANNER] Feedback: {feedback}")
         
         # Format refinement context
-        context = f"""# Plan Refinement Task
+        refinement_context = f"""# Plan Refinement Task
 
 ## Current Plan
 {json.dumps(plan['beats'], indent=2)}
@@ -370,13 +393,9 @@ Refine the plan based on the feedback. Maintain the same JSON structure.
 Return the updated plan as JSON.
 """
         
-        system_prompt = get_system_prompt('planner')
-        
         try:
             response = self.llm_client.chat(
-                query=context,
-                system_prompt=system_prompt,
-                max_tokens=2000,
+                query=refinement_context,
                 module='planner'
             )
             

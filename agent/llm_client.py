@@ -9,6 +9,7 @@ import logging
 import requests
 from typing import Dict, Any, List, Optional
 from .openarena_auth import get_auth_token
+from .interaction_logger import get_interaction_logger
 
 # Configure logging
 logging.basicConfig(
@@ -21,20 +22,24 @@ logger = logging.getLogger(__name__)
 class ClaudeClient:
     """Client for Claude API via Open Arena."""
     
-    def __init__(self, model: str = "claude-3-5-sonnet-20241022", temperature: float = 0.1):
+    def __init__(self, model: str = "claude-3-5-sonnet-20241022", temperature: float = 0.1, enable_logging: bool = True):
         """
         Initialize Claude client.
         
         Args:
             model: Claude model identifier
             temperature: Sampling temperature (0.0-1.0)
+            enable_logging: Enable interaction logging
         """
         self.model = model
         self.temperature = temperature
         self.base_url = "https://aiopenarena.gcs.int.thomsonreuters.com/v1"
         self.token = None
+        self.enable_logging = enable_logging
         
         logger.info(f"[CLAUDE] Initialized with model: {model}, temperature: {temperature}")
+        if enable_logging:
+            logger.info(f"[CLAUDE] Interaction logging enabled")
     
     def _ensure_token(self):
         """Ensure we have a valid authentication token."""
@@ -44,8 +49,6 @@ class ClaudeClient:
     def chat(self, 
              query: str,
              workflow_id: Optional[str] = None,
-             system_prompt: Optional[str] = None,
-             max_tokens: int = 4096,
              context: Optional[str] = None,
              module: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -54,13 +57,16 @@ class ClaudeClient:
         Args:
             query: The user query/prompt
             workflow_id: Optional workflow ID (uses default if not provided)
-            system_prompt: Optional system prompt
-            max_tokens: Maximum tokens in response
             context: Optional context string
             module: Optional module name ('planner', 'picker', 'verifier') to use module-specific workflow
             
         Returns:
             Response dictionary with 'content', 'usage', etc.
+        
+        Note:
+            Model configuration (model type, temperature, max_tokens, system_prompt) should be
+            configured in the Open Arena workflow itself. This keeps the workflow as the single
+            source of truth for all model parameters.
         """
         self._ensure_token()
         
@@ -80,22 +86,13 @@ class ClaudeClient:
                     raise Exception("No workflow_id provided and WORKFLOW_ID not set in environment")
         
         # Construct request payload per Open Arena API spec
+        # Note: Model parameters (model, temperature, max_tokens, system_prompt) are
+        # configured in the workflow itself, not sent in the request
         payload = {
             "workflow_id": workflow_id,
             "query": query,
             "is_persistence_allowed": False
         }
-        
-        # Add model parameters if system prompt or custom settings provided
-        if system_prompt or max_tokens != 4096:
-            payload["modelparams"] = {
-                self.model: {
-                    "temperature": str(self.temperature),
-                    "max_tokens": str(max_tokens)
-                }
-            }
-            if system_prompt:
-                payload["modelparams"][self.model]["system_prompt"] = system_prompt
         
         # Add context if provided
         if context:
@@ -108,6 +105,13 @@ class ClaudeClient:
         }
         
         logger.debug(f"[CLAUDE] Sending inference request to workflow {workflow_id}")
+        
+        # Log request details
+        logger.info(f"[CLAUDE] REQUEST to workflow {workflow_id}")
+        logger.info(f"[CLAUDE] Query length: {len(query)} chars")
+        if context:
+            logger.info(f"[CLAUDE] Context length: {len(context)} chars")
+        logger.debug(f"[CLAUDE] Full request payload: {json.dumps(payload, indent=2)[:500]}...")
         
         try:
             response = requests.post(
@@ -136,6 +140,28 @@ class ClaudeClient:
             
             logger.info(f"[CLAUDE] Response received ({len(str(content))} chars)")
             
+            # Log interaction if enabled
+            if self.enable_logging and module:
+                try:
+                    interaction_logger = get_interaction_logger()
+                    interaction_logger.log_interaction(
+                        agent=module,
+                        interaction_type='chat',
+                        prompt=query,
+                        response=content,
+                        system_prompt=None,  # System prompt is in workflow, not sent in request
+                        context=context,
+                        metadata={
+                            'model': self.model,
+                            'temperature': self.temperature,
+                            'workflow_id': workflow_id
+                        },
+                        raw_request=payload,
+                        raw_response=result
+                    )
+                except Exception as e:
+                    logger.warning(f"[CLAUDE] Failed to log interaction: {e}")
+            
             return {
                 "content": content,
                 "usage": result.get("usage", {}),
@@ -150,8 +176,6 @@ class ClaudeClient:
     def chat_with_json(self,
                       query: str,
                       workflow_id: Optional[str] = None,
-                      system_prompt: Optional[str] = None,
-                      max_tokens: int = 4096,
                       context: Optional[str] = None) -> Dict[str, Any]:
         """
         Send a chat request and parse JSON response.
@@ -159,23 +183,21 @@ class ClaudeClient:
         Args:
             query: The user query/prompt
             workflow_id: Optional workflow ID
-            system_prompt: Optional system prompt
-            max_tokens: Maximum tokens in response
             context: Optional context string
             
         Returns:
             Parsed JSON object from response
-        """
-        # Add JSON instruction to system prompt
-        json_instruction = "\n\nYou must respond with valid JSON only. Do not include any markdown formatting or explanations."
         
-        if system_prompt:
-            system_prompt = system_prompt + json_instruction
-        else:
-            system_prompt = json_instruction
+        Note:
+            The workflow should be configured to return JSON responses.
+            If needed, add JSON formatting instructions to the query itself.
+        """
+        # Add JSON instruction to query
+        json_instruction = "\n\nYou must respond with valid JSON only. Do not include any markdown formatting or explanations."
+        query_with_instruction = query + json_instruction
         
         # Get response
-        result = self.chat(query, workflow_id, system_prompt, max_tokens, context)
+        result = self.chat(query_with_instruction, workflow_id, context)
         content = result["content"]
         
         # Parse JSON

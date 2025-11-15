@@ -75,13 +75,9 @@ class Picker:
         # Step 3: Call LLM to select shots
         logger.info("[PICKER] Calling LLM to select shots...")
         
-        system_prompt = get_system_prompt('picker')
-        
         try:
             response = self.llm_client.chat(
                 query=context,
-                system_prompt=system_prompt,
-                max_tokens=1500,
                 module='picker'
             )
             
@@ -186,8 +182,22 @@ class Picker:
             lines.append("")
         
         if previous_selections:
-            lines.append("## Previously Selected Shots")
-            lines.append(f"({len(previous_selections)} shots already selected)")
+            lines.append("## Previously Selected Shots (DO NOT REUSE)")
+            lines.append(f"**IMPORTANT:** The following {len(previous_selections)} shot(s) have already been used.")
+            lines.append("**You MUST NOT select any of these shots again:**")
+            lines.append("")
+            
+            # List shot IDs that are unavailable
+            used_shot_ids = set()
+            for prev_shot in previous_selections:
+                shot_id = prev_shot.get('shot_id')
+                if shot_id:
+                    used_shot_ids.add(shot_id)
+                    duration = prev_shot.get('duration', 0)
+                    lines.append(f"- Shot {shot_id} (used for {duration:.1f}s)")
+            
+            lines.append("")
+            lines.append(f"**Available shots:** {len(working_set['shots']) - len(used_shot_ids)} shots remaining")
             lines.append("")
         
         lines.append("## Candidate Shots")
@@ -306,12 +316,17 @@ class Picker:
                 'raw_response': response
             }
             
-            # Enrich with full shot data
+            # Enrich with full shot data (excluding embeddings to reduce JSON size)
             shot_lookup = {s['shot_id']: s for s in working_set['shots']}
             for shot_sel in selection['shots']:
                 shot_id = shot_sel['shot_id']
                 if shot_id in shot_lookup:
-                    shot_sel['full_data'] = shot_lookup[shot_id]
+                    # Create a copy without embeddings
+                    full_shot = shot_lookup[shot_id].copy()
+                    # Remove embedding fields to keep result JSON manageable
+                    full_shot.pop('embedding_text', None)
+                    full_shot.pop('embedding_visual', None)
+                    shot_sel['full_data'] = full_shot
             
             logger.info(f"[PICKER] Parsed selection: {len(selection['shots'])} shots, "
                        f"{selection['duration']:.1f}s")

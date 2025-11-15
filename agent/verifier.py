@@ -59,13 +59,9 @@ class Verifier:
         # Call LLM to verify
         logger.info("[VERIFIER] Calling LLM to verify edit...")
         
-        system_prompt = get_system_prompt('verifier')
-        
         try:
             response = self.llm_client.chat(
                 query=context,
-                system_prompt=system_prompt,
-                max_tokens=2000,
                 module='verifier'
             )
             
