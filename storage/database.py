@@ -19,7 +19,7 @@ class ShotsDatabase:
     
     def _init_db(self):
         """Initialize database schema."""
-        self.conn = sqlite3.connect(str(self.db_path))
+        self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         
         cursor = self.conn.cursor()
@@ -197,6 +197,35 @@ class ShotsDatabase:
         query += " ORDER BY capture_ts ASC"
         
         cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        shots = []
+        for row in rows:
+            shot = dict(row)
+            # Deserialize embeddings
+            if shot['embedding_text']:
+                shot['embedding_text'] = pickle.loads(shot['embedding_text'])
+            if shot['embedding_visual']:
+                shot['embedding_visual'] = pickle.loads(shot['embedding_visual'])
+            # Deserialize Gemini subjects
+            if shot.get('gemini_subjects'):
+                shot['gemini_subjects'] = shot['gemini_subjects'].split(',')
+            shots.append(shot)
+        
+        return shots
+    
+    def get_shots_by_ids(self, shot_ids: List[int]) -> List[Dict[str, Any]]:
+        """Retrieve multiple shots by their IDs."""
+        if not shot_ids:
+            return []
+        
+        cursor = self.conn.cursor()
+        
+        # Create placeholders for IN clause
+        placeholders = ','.join('?' * len(shot_ids))
+        query = f"SELECT * FROM shots WHERE shot_id IN ({placeholders})"
+        
+        cursor.execute(query, shot_ids)
         rows = cursor.fetchall()
         
         shots = []

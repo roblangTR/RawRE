@@ -1,0 +1,611 @@
+{
+  "story_metadata": {
+    "title": "City Council Votes on New Housing Development",
+    "duration": 180,
+    "genre": "news",
+    "target_duration": 52,
+    "priority": "high"
+  },
+  "shots": [
+    {
+      "shot_id": "SHOT_001",
+      "timecode_in": "00:00:00:00",
+      "timecode_out": "00:00:30:00",
+      "shot_type": "LS",
+      "content_description": "Wide shot of city council chambers, members seated at desk, mayor at center podium",
+      "duration": 30,
+      "recommended_duration": 4,
+      "information_type": ["establishing"],
+      "quality_assessment": {
+        "overall_score": 8,
+        "focus": "sharp",
+        "exposure": "correct",
+        "framing": "correct",
+        "audio": "acceptable",
+        "stability": "stable",
+        "issues": []
+      },
+      "usability": "primary",
+      "metadata": {
+        "location": "City Hall Council Chambers",
+        "subjects": ["council members", "mayor"],
+        "camera_movement": "static",
+        "audio_type": "ambient"
+      }
+    },
+    {
+      "shot_id": "SHOT_002",
+      "timecode_in": "00:00:30:00",
+      "timecode_out": "00:01:15:00",
+      "shot_type": "CU",
+      "content_description": "Close-up of mayor speaking: 'After careful deliberation, the vote is 6-3 in favor...'",
+      "duration": 45,
+      "recommended_duration": 12,
+      "information_type": ["dialogue", "detail"],
+      "quality_assessment": {
+        "overall_score": 9,
+        "focus": "sharp",
+        "exposure": "correct",
+        "framing": "correct",
+        "audio": "clear",
+        "stability": "stable",
+        "issues": []
+      },
+      "usability": "primary",
+      "metadata": {
+        "location": "City Hall Council Chambers",
+        "subjects": ["mayor"],
+        "camera_movement": "static",
+        "audio_type": "sync_sound"
+      }
+    },
+    {
+      "shot_id": "SHOT_003",
+      "timecode_in": "00:01:15:00",
+      "timecode_out": "00:02:15:00",
+      "shot_type": "MS",
+      "content_description": "Medium shot of council members debating, animated hand gestures, multiple speakers",
+      "duration": 60,
+      "recommended_duration": 6,
+      "information_type": ["action", "b-roll"],
+      "quality_assessment": {
+        "overall_score": 7,
+        "focus": "sharp",
+        "exposure": "acceptable",
+        "framing": "correct",
+        "audio": "noisy",
+        "stability": "stable",
+        "issues": ["multiple voices overlap", "some noise"]
+      },
+      "usability": "secondary",
+      "metadata": {
+        "location": "City Hall Council Chambers",
+        "subjects": ["council members"],
+        "camera_movement": "static",
+        "audio_type": "sync_sound"
+      }
+    },
+    {
+      "shot_id": "SHOT_004",
+      "timecode_in": "00:02:15:00",
+      "timecode_out": "00:02:35:00",
+      "shot_type": "LS",
+      "content_description": "Long shot of proposed development site, empty lot, surrounding buildings, 'PROPOSED SITE' sign visible",
+      "duration": 20,
+      "recommended_duration": 5,
+      "information_type": ["establishing", "b-roll"],
+      "quality_assessment": {
+        "overall_score": 8,
+        "focus": "sharp",
+        "exposure": "correct",
+        "framing": "correct",
+        "audio": "acceptable",
+        "stability": "stable",
+        "issues": []
+      },
+      "usability": "primary",
+      "metadata": {
+        "location": "Proposed Development Site - Downtown",
+        "subjects": ["empty lot", "sign"],
+        "camera_movement": "static",
+        "audio_type": "nat_sound"
+      }
+    },
+    {
+      "shot_id": "SHOT_005",
+      "timecode_in": "00:02:35:00",
+      "timecode_out": "00:03:00:00",
+      "shot_type": "2-SHOT",
+      "content_description": "Two-shot of protesters with 'NO HIGH-RISES' signs, crowd ambient sound",
+      "duration": 25,
+      "recommended_duration": 7,
+      "information_type": ["reaction", "b-roll"],
+      "quality_assessment": {
+        "overall_score": 7,
+        "focus": "sharp",
+        "exposure": "acceptable",
+        "framing": "correct",
+        "audio": "acceptable",
+        "stability": "acceptable",
+        "issues": ["slight camera shake from handheld"]
+      },
+      "usability": "primary",
+      "metadata": {
+        "location": "Outside City Hall",
+        "subjects": ["protesters"],
+        "camera_movement": "handheld",
+        "audio_type": "nat_sound"
+      }
+    },
+    {
+      "shot_id": "SHOT_006",
+      "timecode_in": "00:03:00:00",
+      "timecode_out": "00:03:20:00",
+      "shot_type": "MS",
+      "content_description": "Reporter stand-up with city hall in background: 'For months, this proposal has divided the community...'",
+      "duration": 20,
+      "recommended_duration": 20,
+      "information_type": ["dialogue", "transition"],
+      "quality_assessment": {
+        "overall_score": 9,
+        "focus": "sharp",
+        "exposure": "correct",
+        "framing": "correct",
+        "audio": "clear",
+        "stability": "stable",
+        "issues": []
+      },
+      "usability": "primary",
+      "metadata": {
+        "location": "Outside City Hall",
+        "subjects": ["reporter"],
+        "camera_movement": "static",
+        "audio_type": "sync_sound"
+      }
+    }
+  ],
+  "edit_recommendations": [
+    {
+      "sequence_number": 1,
+      "shot_id": "SHOT_004",
+      "edit_in": 0,
+      "edit_out": 3,
+      "transition_type": "fade_in",
+      "transition_duration": 0.5,
+      "edit_point_analysis": {
+        "edit_strength": "strong",
+        "elements_satisfied": {
+          "information": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Establishes what the story is about - the development site"
+          },
+          "motivation": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Story beginning requires establishing shot",
+            "motivator": "narrative"
+          },
+          "composition": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "N/A for first shot, but composition is clean and clear"
+          },
+          "camera_angle": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "N/A for first shot"
+          },
+          "continuity": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "N/A for first shot"
+          },
+          "sound": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Natural city ambience establishes outdoor location",
+            "treatment": "butt_cut"
+          }
+        },
+        "total_score": 6,
+        "rationale": "Opening with the development site immediately shows viewers what the story concerns"
+      },
+      "audio_treatment": {
+        "split_edit": false,
+        "split_type": "none",
+        "split_offset": 0,
+        "ambient_treatment": "Bring up city traffic ambience gradually with fade-in",
+        "audio_level": -18
+      },
+      "alternatives": [
+        {
+          "description": "Start with reporter stand-up",
+          "edit_in": 0,
+          "edit_out": 5,
+          "rationale": "More traditional news package opening, but less visual impact"
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "shot_id": "SHOT_001",
+      "edit_in": 0,
+      "edit_out": 4,
+      "transition_type": "cut",
+      "edit_point_analysis": {
+        "edit_strength": "strong",
+        "elements_satisfied": {
+          "information": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Shows where the decision was made - council chambers"
+          },
+          "motivation": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Site established, now show decision-making location",
+            "motivator": "narrative"
+          },
+          "composition": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Outdoor wide to indoor wide - clear location change"
+          },
+          "camera_angle": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Different location provides natural angle change",
+            "angle_change_degrees": 90
+          },
+          "continuity": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Location change is clear and intentional",
+            "issues": []
+          },
+          "sound": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Transition from outdoor to indoor ambience",
+            "treatment": "butt_cut"
+          }
+        },
+        "total_score": 6,
+        "rationale": "Clean cut from location of debate (site) to location of decision (council)"
+      },
+      "audio_treatment": {
+        "split_edit": false,
+        "split_type": "none",
+        "split_offset": 0,
+        "ambient_treatment": "Switch to indoor room tone, papers shuffling",
+        "audio_level": -20
+      },
+      "alternatives": []
+    },
+    {
+      "sequence_number": 3,
+      "shot_id": "SHOT_002",
+      "edit_in": 0,
+      "edit_out": 12,
+      "transition_type": "cut",
+      "edit_point_analysis": {
+        "edit_strength": "strong",
+        "elements_satisfied": {
+          "information": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Provides the actual decision - key quote from mayor"
+          },
+          "motivation": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Mayor raises hand to speak - action motivates cut",
+            "motivator": "action"
+          },
+          "composition": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Wide room to tight face - significant compositional change"
+          },
+          "camera_angle": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "From wide establishing to close-up detail",
+            "angle_change_degrees": 45
+          },
+          "continuity": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Same meeting, continuous time, same location",
+            "issues": []
+          },
+          "sound": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Voice replaces room ambience naturally",
+            "treatment": "butt_cut"
+          }
+        },
+        "total_score": 6,
+        "rationale": "Perfect action edit - cut on mayor's gesture delivers key information"
+      },
+      "audio_treatment": {
+        "split_edit": false,
+        "split_type": "none",
+        "split_offset": 0,
+        "ambient_treatment": "Mayor's voice is primary, room tone underneath at -24dB",
+        "audio_level": -8
+      },
+      "alternatives": []
+    },
+    {
+      "sequence_number": 4,
+      "shot_id": "SHOT_003",
+      "edit_in": 2,
+      "edit_out": 8,
+      "transition_type": "cut",
+      "edit_point_analysis": {
+        "edit_strength": "strong",
+        "elements_satisfied": {
+          "information": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Shows debate process, adds context to decision"
+          },
+          "motivation": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Key quote complete, need to show process",
+            "motivator": "narrative"
+          },
+          "composition": {
+            "satisfied": true,
+            "score": 0.9,
+            "explanation": "Wider than previous CU, different subjects"
+          },
+          "camera_angle": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Different angle in same chamber",
+            "angle_change_degrees": 60
+          },
+          "continuity": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Same meeting/location, time flows forward",
+            "issues": []
+          },
+          "sound": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Split edit recommended - smooth transition",
+            "treatment": "picture_leads"
+          }
+        },
+        "total_score": 5.9,
+        "rationale": "B-roll to add visual interest and context, ideally with split edit"
+      },
+      "audio_treatment": {
+        "split_edit": true,
+        "split_type": "picture_leads",
+        "split_offset": 1.0,
+        "ambient_treatment": "Mayor voice continues 1 sec under debate shots, then fade to room ambience",
+        "audio_level": -12
+      },
+      "alternatives": [
+        {
+          "description": "Go directly to protesters",
+          "edit_in": 12,
+          "edit_out": 19,
+          "rationale": "Faster pacing but loses context of decision-making process"
+        }
+      ]
+    },
+    {
+      "sequence_number": 5,
+      "shot_id": "SHOT_005",
+      "edit_in": 0,
+      "edit_out": 7,
+      "transition_type": "cut",
+      "edit_point_analysis": {
+        "edit_strength": "strong",
+        "elements_satisfied": {
+          "information": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Shows community opposition - balances story"
+          },
+          "motivation": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Need to show reaction/impact beyond council",
+            "motivator": "narrative"
+          },
+          "composition": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Indoor to outdoor, different subjects, signs prominent"
+          },
+          "camera_angle": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "New location, new angle",
+            "angle_change_degrees": 90
+          },
+          "continuity": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Location change is clear, temporal jump acceptable",
+            "issues": []
+          },
+          "sound": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Outdoor crowd ambience different from indoor",
+            "treatment": "sound_leads"
+          }
+        },
+        "total_score": 6,
+        "rationale": "Clean transition to opposition viewpoint, balanced coverage"
+      },
+      "audio_treatment": {
+        "split_edit": true,
+        "split_type": "sound_leads",
+        "split_offset": 0.5,
+        "ambient_treatment": "Fade up crowd protest sounds 0.5 sec before picture cut",
+        "audio_level": -15
+      },
+      "alternatives": []
+    },
+    {
+      "sequence_number": 6,
+      "shot_id": "SHOT_006",
+      "edit_in": 0,
+      "edit_out": 20,
+      "transition_type": "cut",
+      "edit_point_analysis": {
+        "edit_strength": "strong",
+        "elements_satisfied": {
+          "information": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Reporter provides context and package close"
+          },
+          "motivation": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Story needs professional wrap-up",
+            "motivator": "narrative"
+          },
+          "composition": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Different from protesters, professional framing"
+          },
+          "camera_angle": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Reporter angle with city hall background",
+            "angle_change_degrees": 45
+          },
+          "continuity": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Standard stand-up convention",
+            "issues": []
+          },
+          "sound": {
+            "satisfied": true,
+            "score": 1.0,
+            "explanation": "Clean reporter audio primary",
+            "treatment": "butt_cut"
+          }
+        },
+        "total_score": 6,
+        "rationale": "Professional package close with reporter context"
+      },
+      "audio_treatment": {
+        "split_edit": false,
+        "split_type": "none",
+        "split_offset": 0,
+        "ambient_treatment": "Reporter voice primary at -8dB, exterior ambient at -22dB",
+        "audio_level": -8
+      },
+      "alternatives": []
+    }
+  ],
+  "continuity_checks": {
+    "screen_direction": {
+      "maintained": true,
+      "issues": []
+    },
+    "180_degree_rule": {
+      "respected": true,
+      "violations": []
+    },
+    "temporal_accuracy": {
+      "consistent": true,
+      "issues": []
+    },
+    "audio_continuity": {
+      "maintained": true,
+      "issues": []
+    }
+  },
+  "alternative_sequences": [
+    {
+      "name": "Reporter-Led Opening",
+      "description": "Start with reporter stand-up, then flashback to council vote",
+      "shot_sequence": ["SHOT_006", "SHOT_004", "SHOT_001", "SHOT_002", "SHOT_003", "SHOT_005"],
+      "pros": [
+        "Immediate journalist authority",
+        "Clearer narrative framing upfront",
+        "Traditional news package structure"
+      ],
+      "cons": [
+        "Less visual impact in opening",
+        "Development site loses emphasis",
+        "Requires rewriting stand-up for opening"
+      ],
+      "recommended": false
+    },
+    {
+      "name": "Emotion-First Opening",
+      "description": "Lead with protesters to create immediate tension",
+      "shot_sequence": ["SHOT_005", "SHOT_004", "SHOT_001", "SHOT_002", "SHOT_003", "SHOT_006"],
+      "pros": [
+        "Immediate human interest",
+        "Creates dramatic tension",
+        "Shows stakes before decision"
+      ],
+      "cons": [
+        "Confusing without context",
+        "Less clear narrative",
+        "Decision buried deeper"
+      ],
+      "recommended": false
+    }
+  ],
+  "summary": {
+    "total_shots_analyzed": 6,
+    "shots_recommended": 6,
+    "final_duration": 52,
+    "total_edits": 6,
+    "edit_quality_breakdown": {
+      "strong_edits": 6,
+      "acceptable_edits": 0,
+      "weak_edits": 0,
+      "avoided_edits": 0
+    },
+    "transition_breakdown": {
+      "cuts": 5,
+      "dissolves": 0,
+      "wipes": 0,
+      "fades": 1
+    },
+    "overall_assessment": "Excellent news package with strong narrative structure, clear information hierarchy, and professional execution. All edits satisfy 5-6 elements of good editing grammar.",
+    "key_strengths": [
+      "Clear visual progression: location → decision → reaction",
+      "Strong opening visual (development site)",
+      "Key decision clearly presented (mayor quote)",
+      "Balanced perspective (official + community)",
+      "Professional reporter close",
+      "All transitions appropriate for news",
+      "Good use of split edits for smoothness"
+    ],
+    "areas_for_improvement": [
+      "Could add brief dissenting council member quote if available",
+      "Development site could use more specific detail shots",
+      "Consider adding graphic with vote count (6-3) over council shots"
+    ],
+    "editor_notes": "Strong package following all news editing conventions. Two split edits recommended (shots 4 and 5) to enhance flow. All footage is usable with good quality. Story structure is clear and information hierarchy appropriate for breaking news."
+  },
+  "metadata": {
+    "analysis_timestamp": "2025-11-14T14:30:00Z",
+    "ai_model_version": "GrammarOfEdit-v1.0",
+    "confidence_score": 0.95,
+    "processing_time": 3.2,
+    "grammar_version": "Thompson-Bowen-2nd-Edition"
+  }
+}

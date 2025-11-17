@@ -6,11 +6,14 @@ Uses vector similarity search and shot graph traversal to find relevant content.
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
+import yaml
+from pathlib import Path
 
 from storage.database import ShotsDatabase
 from storage.vector_index import VectorIndex
+from ingest.embedder import Embedder
 
 # Configure logging
 logging.basicConfig(
@@ -23,17 +26,28 @@ logger = logging.getLogger(__name__)
 class WorkingSetBuilder:
     """Builds focused working sets of shots for agent processing."""
     
-    def __init__(self, database: ShotsDatabase, vector_index: VectorIndex):
+    def __init__(self, database: ShotsDatabase, vector_index: VectorIndex, config: Optional[Dict[str, Any]] = None):
         """
         Initialize working set builder.
         
         Args:
             database: Shot database instance
             vector_index: Vector index instance
+            config: Configuration dictionary (optional, will load from config.yaml if not provided)
         """
         self.database = database
         self.vector_index = vector_index
-        logger.info("[WORKING_SET] Initialized")
+        
+        # Load config if not provided
+        if config is None:
+            config_path = Path(__file__).parent.parent / 'config.yaml'
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+        
+        self.config = config
+        self.embedder = Embedder(config)
+        
+        logger.info("[WORKING_SET] Initialized with semantic search capabilities")
     
     def build_for_query(self,
                        story_slug: str,
@@ -79,12 +93,41 @@ class WorkingSetBuilder:
         
         logger.info(f"[WORKING_SET] Found {len(all_shots)} total shots")
         
-        # Step 2: Perform vector similarity search
-        # TODO: Implement when embedder is integrated
-        # For now, use simple heuristics
-        
-        # Step 3: Score and rank shots
-        scored_shots = self._score_shots(all_shots, query)
+        # Step 2: Perform vector similarity search with semantic embeddings
+        try:
+            # Generate query embedding
+            query_embedding = self.embedder.embed_text([query])[0]
+            
+            # Search vector index (get 2x candidates for hybrid filtering)
+            search_results = self.vector_index.search(
+                query_vector=query_embedding,
+                k=min(max_shots * 2, len(all_shots))
+            )
+            
+            if search_results:
+                logger.info(f"[WORKING_SET] Semantic search found {len(search_results)} candidates")
+                
+                # Get full shot details for semantic search results
+                semantic_shot_ids = [r.shot_id for r in search_results]
+                semantic_shots = self.database.get_shots_by_ids(semantic_shot_ids)
+                
+                # Create score map from search results
+                semantic_score_map = {r.shot_id: r.score for r in search_results}
+                
+                # Add semantic scores to shots
+                for shot in semantic_shots:
+                    shot['semantic_score'] = semantic_score_map.get(shot['shot_id'], 0.0)
+                
+                # Step 3: Apply hybrid scoring (semantic + keyword + heuristics)
+                scored_shots = self._apply_hybrid_scoring(semantic_shots, query)
+                
+            else:
+                logger.warning("[WORKING_SET] Semantic search returned no results, falling back to keyword matching")
+                scored_shots = self._score_shots(all_shots, query)
+                
+        except Exception as e:
+            logger.warning(f"[WORKING_SET] Semantic search failed ({e}), falling back to keyword matching")
+            scored_shots = self._score_shots(all_shots, query)
         
         # Step 4: Select top shots
         selected_shots = scored_shots[:max_shots]
@@ -152,9 +195,70 @@ class WorkingSetBuilder:
         
         return working_set
     
+    def _apply_hybrid_scoring(self, shots: List[Dict], query: str) -> List[Dict]:
+        """
+        Apply hybrid scoring combining semantic similarity with keyword matching and heuristics.
+        
+        Args:
+            shots: List of shot dictionaries (should already have semantic_score)
+            query: Query string
+            
+        Returns:
+            List of shots sorted by final combined score (descending)
+        """
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+        
+        for shot in shots:
+            # Get semantic score (0.0-1.0)
+            semantic_score = shot.get('semantic_score', 0.0)
+            
+            # Calculate keyword match score (0.0-1.0)
+            keyword_score = 0.0
+            asr_text = shot.get('asr_text', '').lower()
+            if asr_text:
+                asr_words = set(asr_text.split())
+                intersection = query_words & asr_words
+                union = query_words | asr_words
+                if union:
+                    keyword_score = len(intersection) / len(union)
+            
+            # Heuristic bonuses (smaller weights as tiebreakers)
+            heuristic_bonus = 0.0
+            
+            # Boost SOT shots
+            if shot.get('shot_type') == 'SOT':
+                heuristic_bonus += 0.15
+            
+            # Boost shots with faces
+            if shot.get('has_face'):
+                heuristic_bonus += 0.10
+            
+            # Prefer medium duration shots
+            duration_s = shot['duration_ms'] / 1000.0
+            if 3.0 <= duration_s <= 10.0:
+                heuristic_bonus += 0.05
+            
+            # Weighted combination: semantic (70%) + keyword (20%) + heuristics (10%)
+            final_score = (semantic_score * 0.7) + (keyword_score * 0.2) + (heuristic_bonus * 0.1)
+            
+            # Store component scores for transparency
+            shot['semantic_score'] = semantic_score
+            shot['keyword_score'] = keyword_score
+            shot['heuristic_bonus'] = heuristic_bonus
+            shot['final_score'] = final_score
+            shot['relevance_score'] = final_score  # Keep for compatibility
+        
+        # Sort by final score descending
+        shots.sort(key=lambda s: s['final_score'], reverse=True)
+        
+        logger.info(f"[WORKING_SET] Hybrid scoring complete. Top shot score: {shots[0]['final_score']:.3f}")
+        
+        return shots
+    
     def _score_shots(self, shots: List[Dict], query: str) -> List[Dict]:
         """
-        Score shots based on relevance to query.
+        Score shots based on keyword matching and heuristics (fallback when semantic search unavailable).
         
         Args:
             shots: List of shot dictionaries
@@ -163,9 +267,6 @@ class WorkingSetBuilder:
         Returns:
             List of shots sorted by relevance score (descending)
         """
-        # Simple keyword-based scoring for now
-        # TODO: Replace with proper vector similarity when embeddings are integrated
-        
         query_lower = query.lower()
         query_words = set(query_lower.split())
         

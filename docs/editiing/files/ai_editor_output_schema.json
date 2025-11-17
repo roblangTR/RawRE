@@ -1,0 +1,430 @@
+{
+  "title": "AI Video Editor Analysis Output Schema",
+  "description": "Structured output format for AI video editing analysis based on Grammar of the Edit principles",
+  "type": "object",
+  "required": ["story_metadata", "shots", "edit_recommendations", "summary"],
+  "properties": {
+    "story_metadata": {
+      "type": "object",
+      "required": ["title", "duration", "genre"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Story headline or title"
+        },
+        "duration": {
+          "type": "number",
+          "description": "Total footage duration in seconds"
+        },
+        "genre": {
+          "type": "string",
+          "enum": ["news", "documentary", "narrative", "commercial", "sports", "music_video"],
+          "description": "Content type"
+        },
+        "target_duration": {
+          "type": "number",
+          "description": "Target final edit duration in seconds"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["breaking", "high", "medium", "low"],
+          "description": "Story urgency"
+        }
+      }
+    },
+    "shots": {
+      "type": "array",
+      "description": "Analysis of each shot in the footage",
+      "items": {
+        "type": "object",
+        "required": ["shot_id", "shot_type", "content", "duration", "quality_score"],
+        "properties": {
+          "shot_id": {
+            "type": "string",
+            "description": "Unique identifier for this shot"
+          },
+          "timecode_in": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}:\\d{2}[:\\.]\\d{2,3}$",
+            "description": "Start timecode (HH:MM:SS:FF)"
+          },
+          "timecode_out": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}:\\d{2}[:\\.]\\d{2,3}$",
+            "description": "End timecode (HH:MM:SS:FF)"
+          },
+          "shot_type": {
+            "type": "string",
+            "enum": ["XCU", "BCU", "CU", "MCU", "MS", "MLS", "LS", "VLS", "XLS", "2-SHOT", "OTS"],
+            "description": "Shot classification"
+          },
+          "content_description": {
+            "type": "string",
+            "description": "What is visible and audible in the shot"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Shot duration in seconds"
+          },
+          "recommended_duration": {
+            "type": "number",
+            "description": "Suggested hold time in final edit"
+          },
+          "information_type": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["establishing", "detail", "action", "reaction", "dialogue", "b-roll", "transition"]
+            },
+            "description": "What information this shot provides"
+          },
+          "quality_assessment": {
+            "type": "object",
+            "properties": {
+              "overall_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "Overall quality rating 0-10"
+              },
+              "focus": {
+                "type": "string",
+                "enum": ["sharp", "acceptable", "soft", "out_of_focus"]
+              },
+              "exposure": {
+                "type": "string",
+                "enum": ["correct", "acceptable", "overexposed", "underexposed"]
+              },
+              "framing": {
+                "type": "string",
+                "enum": ["correct", "acceptable", "poor"]
+              },
+              "audio": {
+                "type": "string",
+                "enum": ["clear", "acceptable", "noisy", "unusable"]
+              },
+              "stability": {
+                "type": "string",
+                "enum": ["stable", "acceptable", "shaky"]
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of quality problems"
+              }
+            }
+          },
+          "usability": {
+            "type": "string",
+            "enum": ["primary", "secondary", "b-roll", "cutaway", "avoid"],
+            "description": "Recommended usage priority"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "location": {"type": "string"},
+              "subjects": {"type": "array", "items": {"type": "string"}},
+              "camera_movement": {"type": "string", "enum": ["static", "pan", "tilt", "zoom", "dolly", "handheld"]},
+              "audio_type": {"type": "string", "enum": ["sync_sound", "nat_sound", "ambient", "silent"]}
+            }
+          }
+        }
+      }
+    },
+    "edit_recommendations": {
+      "type": "array",
+      "description": "Recommended edit sequence with justification",
+      "items": {
+        "type": "object",
+        "required": ["sequence_number", "shot_id", "edit_in", "edit_out", "transition_type"],
+        "properties": {
+          "sequence_number": {
+            "type": "integer",
+            "description": "Order in final edit"
+          },
+          "shot_id": {
+            "type": "string",
+            "description": "Reference to shot from shots array"
+          },
+          "edit_in": {
+            "type": "number",
+            "description": "Seconds into shot to begin"
+          },
+          "edit_out": {
+            "type": "number",
+            "description": "Seconds into shot to end"
+          },
+          "transition_type": {
+            "type": "string",
+            "enum": ["cut", "dissolve", "wipe", "fade_in", "fade_out"],
+            "description": "Transition to next shot"
+          },
+          "transition_duration": {
+            "type": "number",
+            "description": "Duration of transition effect in seconds (if not cut)"
+          },
+          "edit_point_analysis": {
+            "type": "object",
+            "required": ["edit_strength", "elements_satisfied"],
+            "properties": {
+              "edit_strength": {
+                "type": "string",
+                "enum": ["strong", "acceptable", "weak", "avoid"],
+                "description": "Overall edit quality assessment"
+              },
+              "elements_satisfied": {
+                "type": "object",
+                "properties": {
+                  "information": {
+                    "type": "object",
+                    "properties": {
+                      "satisfied": {"type": "boolean"},
+                      "score": {"type": "number", "minimum": 0, "maximum": 1},
+                      "explanation": {"type": "string"}
+                    }
+                  },
+                  "motivation": {
+                    "type": "object",
+                    "properties": {
+                      "satisfied": {"type": "boolean"},
+                      "score": {"type": "number", "minimum": 0, "maximum": 1},
+                      "explanation": {"type": "string"},
+                      "motivator": {"type": "string", "enum": ["action", "dialogue", "sound", "beat", "narrative"]}
+                    }
+                  },
+                  "composition": {
+                    "type": "object",
+                    "properties": {
+                      "satisfied": {"type": "boolean"},
+                      "score": {"type": "number", "minimum": 0, "maximum": 1},
+                      "explanation": {"type": "string"}
+                    }
+                  },
+                  "camera_angle": {
+                    "type": "object",
+                    "properties": {
+                      "satisfied": {"type": "boolean"},
+                      "score": {"type": "number", "minimum": 0, "maximum": 1},
+                      "explanation": {"type": "string"},
+                      "angle_change_degrees": {"type": "number"}
+                    }
+                  },
+                  "continuity": {
+                    "type": "object",
+                    "properties": {
+                      "satisfied": {"type": "boolean"},
+                      "score": {"type": "number", "minimum": 0, "maximum": 1},
+                      "explanation": {"type": "string"},
+                      "issues": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["content", "movement", "position", "sound", "screen_direction"]
+                        }
+                      }
+                    }
+                  },
+                  "sound": {
+                    "type": "object",
+                    "properties": {
+                      "satisfied": {"type": "boolean"},
+                      "score": {"type": "number", "minimum": 0, "maximum": 1},
+                      "explanation": {"type": "string"},
+                      "treatment": {"type": "string", "enum": ["butt_cut", "sound_leads", "picture_leads", "cross_fade"]}
+                    }
+                  }
+                }
+              },
+              "total_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 6,
+                "description": "Sum of satisfied elements (out of 6)"
+              },
+              "rationale": {
+                "type": "string",
+                "description": "Overall explanation for this edit point"
+              }
+            }
+          },
+          "audio_treatment": {
+            "type": "object",
+            "properties": {
+              "split_edit": {
+                "type": "boolean",
+                "description": "Whether to use L-cut or J-cut"
+              },
+              "split_type": {
+                "type": "string",
+                "enum": ["none", "sound_leads", "picture_leads"],
+                "description": "Type of split edit"
+              },
+              "split_offset": {
+                "type": "number",
+                "description": "Seconds between audio and video cut points"
+              },
+              "ambient_treatment": {
+                "type": "string",
+                "description": "How to handle background audio"
+              },
+              "audio_level": {
+                "type": "number",
+                "description": "Recommended audio level in dB"
+              }
+            }
+          },
+          "alternatives": {
+            "type": "array",
+            "description": "Alternative edit points or approaches",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {"type": "string"},
+                "edit_in": {"type": "number"},
+                "edit_out": {"type": "number"},
+                "rationale": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "continuity_checks": {
+      "type": "object",
+      "properties": {
+        "screen_direction": {
+          "type": "object",
+          "properties": {
+            "maintained": {"type": "boolean"},
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "between_shots": {"type": "array", "items": {"type": "string"}},
+                  "description": {"type": "string"},
+                  "severity": {"type": "string", "enum": ["critical", "moderate", "minor"]}
+                }
+              }
+            }
+          }
+        },
+        "180_degree_rule": {
+          "type": "object",
+          "properties": {
+            "respected": {"type": "boolean"},
+            "violations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "shots": {"type": "array", "items": {"type": "string"}},
+                  "description": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "temporal_accuracy": {
+          "type": "object",
+          "properties": {
+            "consistent": {"type": "boolean"},
+            "issues": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "audio_continuity": {
+          "type": "object",
+          "properties": {
+            "maintained": {"type": "boolean"},
+            "issues": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "alternative_sequences": {
+      "type": "array",
+      "description": "Alternative edit approaches",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "shot_sequence": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "pros": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "cons": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "recommended": {"type": "boolean"}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_shots", "recommended_shots", "final_duration", "edit_strength"],
+      "properties": {
+        "total_shots_analyzed": {"type": "integer"},
+        "shots_recommended": {"type": "integer"},
+        "final_duration": {"type": "number"},
+        "total_edits": {"type": "integer"},
+        "edit_quality_breakdown": {
+          "type": "object",
+          "properties": {
+            "strong_edits": {"type": "integer"},
+            "acceptable_edits": {"type": "integer"},
+            "weak_edits": {"type": "integer"},
+            "avoided_edits": {"type": "integer"}
+          }
+        },
+        "transition_breakdown": {
+          "type": "object",
+          "properties": {
+            "cuts": {"type": "integer"},
+            "dissolves": {"type": "integer"},
+            "wipes": {"type": "integer"},
+            "fades": {"type": "integer"}
+          }
+        },
+        "overall_assessment": {
+          "type": "string",
+          "description": "Overall editorial assessment"
+        },
+        "key_strengths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "areas_for_improvement": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "editor_notes": {
+          "type": "string",
+          "description": "Additional notes or considerations"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "analysis_timestamp": {"type": "string", "format": "date-time"},
+        "ai_model_version": {"type": "string"},
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall confidence in recommendations"
+        },
+        "processing_time": {"type": "number", "description": "Seconds to analyze"},
+        "grammar_version": {"type": "string", "description": "Version of editing grammar applied"}
+      }
+    }
+  }
+}

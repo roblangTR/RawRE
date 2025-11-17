@@ -34,7 +34,8 @@ class AgentOrchestrator:
     def __init__(self,
                  database: ShotsDatabase,
                  vector_index: VectorIndex,
-                 llm_client: ClaudeClient):
+                 llm_client: ClaudeClient,
+                 config: Optional[Dict] = None):
         """
         Initialize orchestrator.
         
@@ -42,20 +43,22 @@ class AgentOrchestrator:
             database: Shot database instance
             vector_index: Vector index instance
             llm_client: LLM client instance
+            config: Configuration dictionary (optional)
         """
         self.database = database
         self.vector_index = vector_index
         self.llm_client = llm_client
+        self.config = config
         
-        # Initialize working set builder
-        self.working_set_builder = WorkingSetBuilder(database, vector_index)
+        # Initialize working set builder with semantic search
+        self.working_set_builder = WorkingSetBuilder(database, vector_index, config)
         
         # Initialize agents
         self.planner = Planner(llm_client, self.working_set_builder)
         self.picker = Picker(llm_client, self.working_set_builder)
         self.verifier = Verifier(llm_client)
         
-        logger.info("[ORCHESTRATOR] Initialized with all agents")
+        logger.info("[ORCHESTRATOR] Initialized with all agents and semantic search")
     
     def compile_edit(self,
                     story_slug: str,
@@ -63,7 +66,8 @@ class AgentOrchestrator:
                     target_duration: int,
                     constraints: Optional[Dict] = None,
                     max_iterations: int = 3,
-                    min_verification_score: float = 7.0) -> Dict:
+                    min_verification_score: float = 7.0,
+                    status_callback: Optional[callable] = None) -> Dict:
         """
         Compile a complete edit using the three-agent workflow.
         
@@ -74,6 +78,7 @@ class AgentOrchestrator:
             constraints: Optional constraints
             max_iterations: Maximum refinement iterations
             min_verification_score: Minimum acceptable verification score
+            status_callback: Optional callback function for status updates
             
         Returns:
             Dictionary with complete edit and metadata
@@ -132,10 +137,16 @@ class AgentOrchestrator:
                         target_duration=target_duration,
                         constraints=constraints
                     )
+                    
+                    # Notify plan created
+                    if status_callback:
+                        status_callback("plan_created", {"plan": plan})
                 else:
                     logger.info("[ORCHESTRATOR] Step 1: Refining plan based on feedback...")
-                    feedback = self._generate_refinement_feedback(verification)
-                    plan = self.planner.refine_plan(plan, feedback)
+                    if verification:
+                        feedback = self._generate_refinement_feedback(verification)
+                        if plan:
+                            plan = self.planner.refine_plan(plan, feedback)
                 
                 iteration_data['plan'] = plan
                 logger.info(f"[ORCHESTRATOR] ✓ Plan: {len(plan['beats'])} beats, "
@@ -143,6 +154,15 @@ class AgentOrchestrator:
                 
                 # Step 2: Shot Selection
                 logger.info("[ORCHESTRATOR] Step 2: Selecting shots...")
+                
+                # Notify for each beat
+                if status_callback and plan:
+                    for i, beat in enumerate(plan.get('beats', [])):
+                        status_callback("beat_searching", {
+                            "beat_index": i,
+                            "beat_title": beat.get("title", f"Beat {i+1}")
+                        })
+                
                 selections = self.picker.pick_shots_for_plan(
                     plan=plan,
                     story_slug=story_slug
@@ -151,8 +171,21 @@ class AgentOrchestrator:
                 logger.info(f"[ORCHESTRATOR] ✓ Selections: {selections['total_shots']} shots, "
                            f"{selections['total_duration']:.1f}s")
                 
+                # Notify beats complete
+                if status_callback and selections:
+                    for i, beat_sel in enumerate(selections.get('beat_selections', [])):
+                        status_callback("beat_complete", {
+                            "beat_index": i,
+                            "shots": beat_sel.get('shots', [])
+                        })
+                
                 # Step 3: Verification
                 logger.info("[ORCHESTRATOR] Step 3: Verifying edit...")
+                
+                # Notify verification started
+                if status_callback:
+                    status_callback("verification", {})
+                
                 verification = self.verifier.verify_edit(
                     plan=plan,
                     selections=selections,
@@ -162,6 +195,13 @@ class AgentOrchestrator:
                 
                 overall_score = verification.get('overall_score', 0)
                 logger.info(f"[ORCHESTRATOR] ✓ Verification: {overall_score}/10")
+                
+                # Notify iteration complete
+                if status_callback:
+                    status_callback("iteration_complete", {
+                        "iteration": iteration,
+                        "score": overall_score
+                    })
                 
                 # Check if approved
                 if verification.get('approved') and overall_score >= min_verification_score:
