@@ -118,7 +118,8 @@ class SequenceAnalyzer:
                 seq_name = self._normalize_sequence_name(location)
             else:
                 # No location metadata - group by context if available
-                context = shot.get('gemini_context', '').lower()
+                context = shot.get('gemini_context') or ''
+                context = context.lower()
                 if 'indoor' in context or 'interior' in context:
                     seq_name = 'indoor_unknown'
                 elif 'outdoor' in context or 'exterior' in context:
@@ -332,6 +333,9 @@ class SequenceAnalyzer:
                     reverse=True
                 )
                 filtered[seq_name] = sorted_shots[:self.max_shots_per_sequence]
+                # Add trimmed shots to miscellaneous
+                trimmed_shots = sorted_shots[self.max_shots_per_sequence:]
+                small_shots.extend(trimmed_shots)
             else:
                 # Sequence is within acceptable size
                 filtered[seq_name] = shots
