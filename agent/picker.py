@@ -12,6 +12,8 @@ import json
 from agent.llm_client import ClaudeClient
 from agent.system_prompts import get_system_prompt
 from agent.working_set import WorkingSetBuilder
+from agent.sequence_analyzer import SequenceAnalyzer
+from ingest.gemini_analyzer import GeminiAnalyzer
 
 # Configure logging
 logging.basicConfig(
@@ -26,17 +28,39 @@ class Picker:
     
     def __init__(self,
                  llm_client: ClaudeClient,
-                 working_set_builder: WorkingSetBuilder):
+                 working_set_builder: WorkingSetBuilder,
+                 sequence_analyzer: Optional[SequenceAnalyzer] = None,
+                 gemini_analyzer: Optional[GeminiAnalyzer] = None,
+                 config: Optional[Dict] = None):
         """
         Initialize picker.
         
         Args:
             llm_client: LLM client for inference
             working_set_builder: Working set builder for candidates
+            sequence_analyzer: Optional sequence analyzer for grouping shots
+            gemini_analyzer: Optional Gemini analyzer for sequence visual analysis
+            config: Optional configuration dictionary
         """
         self.llm_client = llm_client
         self.working_set_builder = working_set_builder
-        logger.info("[PICKER] Initialized")
+        self.sequence_analyzer = sequence_analyzer
+        self.gemini_analyzer = gemini_analyzer
+        self.config = config or {}
+        
+        # Check if sequence-based picking is enabled
+        gemini_config = self.config.get('gemini', {})
+        self.sequence_picking_enabled = (
+            gemini_config.get('picking', {}).get('enabled', False) and
+            self.sequence_analyzer is not None and
+            self.gemini_analyzer is not None and
+            self.gemini_analyzer.enabled
+        )
+        
+        if self.sequence_picking_enabled:
+            logger.info("[PICKER] Initialized with sequence-based visual analysis")
+        else:
+            logger.info("[PICKER] Initialized (sequence analysis disabled)")
     
     def pick_shots_for_beat(self,
                            beat: Dict,
@@ -65,14 +89,61 @@ class Picker:
         
         logger.info(f"[PICKER] Working set: {len(working_set['shots'])} candidate shots")
         
-        # Step 2: Format context for LLM
-        context = self._format_picking_context(
-            beat=beat,
-            working_set=working_set,
-            previous_selections=previous_selections
-        )
+        # Step 2: Group into sequences and analyze (if enabled)
+        sequences = None
+        sequence_analyses = None
         
-        # Step 3: Call LLM to select shots
+        if self.sequence_picking_enabled and len(working_set['shots']) > 0:
+            try:
+                logger.info("[PICKER] Grouping shots into sequences...")
+                sequences = self.sequence_analyzer.group_by_sequences(
+                    working_set['shots'],
+                    method=self.config.get('gemini', {}).get('picking', {}).get('sequence_grouping_method', 'hybrid')
+                )
+                logger.info(f"[PICKER] Grouped into {len(sequences)} sequences")
+                
+                # Analyze sequences with Gemini
+                if sequences:
+                    logger.info("[PICKER] Analyzing sequences with Gemini...")
+                    
+                    # Prepare video paths (we'll use the first shot's path as representative)
+                    video_paths_map = {}
+                    for seq_name, seq_shots in sequences.items():
+                        if seq_shots:
+                            # For now, we'll pass the first shot's video path
+                            # In production, this would be the actual video file paths
+                            video_paths_map[seq_name] = ['/path/to/video.mp4'] * len(seq_shots)
+                    
+                    sequence_analyses = self.gemini_analyzer.analyze_all_sequences(
+                        sequences=sequences,
+                        video_paths_map=video_paths_map
+                    )
+                    
+                    successful = sum(1 for a in sequence_analyses.values() if a is not None)
+                    logger.info(f"[PICKER] Analyzed {successful}/{len(sequences)} sequences")
+            
+            except Exception as e:
+                logger.warning(f"[PICKER] Sequence analysis failed: {e}, continuing without it")
+                sequences = None
+                sequence_analyses = None
+        
+        # Step 3: Format context for LLM
+        if sequences and sequence_analyses:
+            context = self._format_context_with_sequences(
+                beat=beat,
+                working_set=working_set,
+                sequences=sequences,
+                sequence_analyses=sequence_analyses,
+                previous_selections=previous_selections
+            )
+        else:
+            context = self._format_picking_context(
+                beat=beat,
+                working_set=working_set,
+                previous_selections=previous_selections
+            )
+        
+        # Step 4: Call LLM to select shots
         logger.info("[PICKER] Calling LLM to select shots...")
         
         try:
@@ -84,8 +155,13 @@ class Picker:
             # Extract content from response
             response_text = response.get('content', response)
             
-            # Step 4: Parse response
+            # Step 5: Parse response
             selection = self._parse_selection_response(response_text, beat, working_set)
+            
+            # Add sequence metadata to selection
+            if sequences:
+                selection['sequences_analyzed'] = len(sequences)
+                selection['sequence_picking_enabled'] = True
             
             logger.info(f"[PICKER] ✓ Selected {len(selection['shots'])} shots")
             
@@ -268,6 +344,198 @@ class Picker:
         lines.append('    }')
         lines.append('  ],')
         lines.append('  "reasoning": "Overall reasoning for this selection"')
+        lines.append('}')
+        lines.append("```")
+        
+        return "\n".join(lines)
+    
+    def _format_context_with_sequences(self,
+                                       beat: Dict,
+                                       working_set: Dict,
+                                       sequences: Dict[str, List[Dict]],
+                                       sequence_analyses: Dict[str, Optional[Dict]],
+                                       previous_selections: Optional[List[Dict]]) -> str:
+        """
+        Format context with sequence-based visual analysis for LLM shot picking.
+        
+        Args:
+            beat: Beat dictionary
+            working_set: Working set of candidate shots
+            sequences: Dictionary mapping sequence names to lists of shots
+            sequence_analyses: Dictionary mapping sequence names to Gemini analysis results
+            previous_selections: Previously selected shots
+            
+        Returns:
+            Formatted context string with sequence intelligence
+        """
+        lines = []
+        
+        lines.append("# Shot Selection Task with Visual Sequence Analysis")
+        lines.append("")
+        lines.append(f"## Beat {beat['beat_number']}: {beat['title']}")
+        lines.append(f"**Description:** {beat['description']}")
+        lines.append(f"**Target Duration:** {beat['target_duration']} seconds")
+        lines.append(f"**Required Shot Types:** {', '.join(beat.get('required_shot_types', []))}")
+        lines.append("")
+        
+        if beat.get('requirements'):
+            lines.append("**Requirements:**")
+            for req in beat['requirements']:
+                lines.append(f"- {req}")
+            lines.append("")
+        
+        if previous_selections:
+            lines.append("## Previously Selected Shots (DO NOT REUSE)")
+            lines.append(f"**IMPORTANT:** The following {len(previous_selections)} shot(s) have already been used.")
+            lines.append("**You MUST NOT select any of these shots again:**")
+            lines.append("")
+            
+            used_shot_ids = set()
+            for prev_shot in previous_selections:
+                shot_id = prev_shot.get('shot_id')
+                if shot_id:
+                    used_shot_ids.add(shot_id)
+                    duration = prev_shot.get('duration', 0)
+                    lines.append(f"- Shot {shot_id} (used for {duration:.1f}s)")
+            
+            lines.append("")
+            lines.append(f"**Available shots:** {len(working_set['shots']) - len(used_shot_ids)} shots remaining")
+            lines.append("")
+        
+        lines.append("## Visual Sequence Analysis")
+        lines.append(f"The {len(working_set['shots'])} candidate shots have been grouped into {len(sequences)} sequences and analyzed for visual continuity:")
+        lines.append("")
+        
+        # Present each sequence with its analysis
+        for seq_name, seq_shots in sequences.items():
+            analysis = sequence_analyses.get(seq_name)
+            
+            lines.append(f"### Sequence: {seq_name}")
+            lines.append(f"**Shots in sequence:** {len(seq_shots)}")
+            
+            if analysis and isinstance(analysis, dict):
+                # Overall assessment
+                overall = analysis.get('overall_assessment', {})
+                if overall:
+                    quality = overall.get('sequence_quality', 'N/A')
+                    variety = overall.get('shot_variety', 'N/A')
+                    continuity = overall.get('continuity_score', 'N/A')
+                    recommended = overall.get('recommended_for_picking', True)
+                    
+                    lines.append(f"**Quality Score:** {quality}/10")
+                    lines.append(f"**Shot Variety:** {variety}")
+                    lines.append(f"**Continuity Score:** {continuity}/10")
+                    lines.append(f"**Recommended for Use:** {'Yes' if recommended else 'No'}")
+                
+                # Warnings
+                warnings = analysis.get('warnings', [])
+                if warnings:
+                    lines.append(f"**⚠️ Warnings ({len(warnings)}):**")
+                    for warning in warnings[:3]:  # Show first 3
+                        w_type = warning.get('type', 'unknown')
+                        severity = warning.get('severity', 'unknown')
+                        desc = warning.get('description', '')
+                        shots_involved = warning.get('shots', [])
+                        lines.append(f"  - [{severity.upper()}] {w_type}: {desc}")
+                        if shots_involved:
+                            lines.append(f"    Shots: {', '.join(map(str, shots_involved))}")
+                
+                # Recommended subsequences
+                recommended_subs = analysis.get('recommended_subsequences', [])
+                if recommended_subs:
+                    lines.append(f"**✓ Recommended Shot Progressions:**")
+                    for sub in recommended_subs[:2]:  # Show top 2
+                        sub_shots = sub.get('shots', [])
+                        reason = sub.get('reason', '')
+                        flow_score = sub.get('flow_score', 0)
+                        lines.append(f"  - Shots {', '.join(map(str, sub_shots))}: {reason} (Flow: {flow_score}/10)")
+                
+                # Entry/exit points
+                entry_points = analysis.get('entry_points', [])
+                exit_points = analysis.get('exit_points', [])
+                if entry_points:
+                    best_entry = entry_points[0]
+                    lines.append(f"**Best Entry Point:** Shot {best_entry.get('shot_id')} - {best_entry.get('reason', '')}")
+                if exit_points:
+                    best_exit = exit_points[0]
+                    lines.append(f"**Best Exit Point:** Shot {best_exit.get('shot_id')} - {best_exit.get('reason', '')}")
+            
+            lines.append("")
+        
+        lines.append("## Candidate Shots (Grouped by Sequence)")
+        lines.append("")
+        
+        # Show shots grouped by sequence
+        for seq_name, seq_shots in sequences.items():
+            lines.append(f"### {seq_name}")
+            
+            for shot in seq_shots:
+                duration = shot['duration_ms'] / 1000.0
+                shot_id = shot['shot_id']
+                
+                lines.append(f"**Shot {shot_id}**")
+                lines.append(f"- Type: {shot.get('shot_type', 'UNKNOWN')}")
+                lines.append(f"- Duration: {duration:.1f}s")
+                lines.append(f"- Timecode: {shot['tc_in']} - {shot['tc_out']}")
+                
+                # Get shot-specific analysis if available
+                analysis = sequence_analyses.get(seq_name)
+                if analysis and isinstance(analysis, dict):
+                    shot_analysis = analysis.get('shots', {}).get(f'shot_{shot_id}', {})
+                    if shot_analysis:
+                        quality = shot_analysis.get('quality_score', 'N/A')
+                        works_with = shot_analysis.get('works_well_with', [])
+                        avoid_with = shot_analysis.get('avoid_with', [])
+                        notes = shot_analysis.get('notes', '')
+                        
+                        lines.append(f"- **Visual Quality:** {quality}/10")
+                        if works_with:
+                            lines.append(f"- **Works Well With:** Shots {', '.join(map(str, works_with))}")
+                        if avoid_with:
+                            lines.append(f"- **⚠️ Avoid With:** Shots {', '.join(map(str, avoid_with))}")
+                        if notes:
+                            lines.append(f"- **Notes:** {notes}")
+                
+                # Standard metadata
+                if shot.get('gemini_shot_size'):
+                    lines.append(f"- Shot Size: {shot['gemini_shot_size']}")
+                if shot.get('gemini_composition'):
+                    lines.append(f"- Composition: {shot['gemini_composition']}")
+                if shot.get('gemini_description'):
+                    desc = shot['gemini_description'][:150]
+                    if len(shot.get('gemini_description', '')) > 150:
+                        desc += "..."
+                    lines.append(f"- Description: {desc}")
+                if shot.get('asr_text'):
+                    text = shot['asr_text'][:100]
+                    if len(shot['asr_text']) > 100:
+                        text += "..."
+                    lines.append(f"- Transcript: \"{text}\"")
+                
+                lines.append("")
+        
+        lines.append("## Task")
+        lines.append("Select the best shots for this beat, using the visual sequence analysis to:")
+        lines.append("1. **Avoid jump cuts** - Don't select shots flagged as incompatible")
+        lines.append("2. **Follow recommended progressions** - Use suggested shot sequences when possible")
+        lines.append("3. **Consider visual quality** - Prefer shots with higher quality scores")
+        lines.append("4. **Ensure smooth transitions** - Select shots that work well together")
+        lines.append("5. **Meet beat requirements** - Still satisfy the editorial needs")
+        lines.append("6. **Respect target duration** - Fit within the time allocation")
+        lines.append("")
+        lines.append("Return your selection as JSON:")
+        lines.append("```json")
+        lines.append("{")
+        lines.append('  "shots": [')
+        lines.append('    {')
+        lines.append('      "shot_id": 123,')
+        lines.append('      "reason": "Why this shot was selected (reference sequence analysis)",')
+        lines.append('      "trim_in": "00:00:05:00",')
+        lines.append('      "trim_out": "00:00:10:00",')
+        lines.append('      "duration": 5.0')
+        lines.append('    }')
+        lines.append('  ],')
+        lines.append('  "reasoning": "Overall reasoning, explaining how sequence analysis informed choices"')
         lines.append('}')
         lines.append("```")
         

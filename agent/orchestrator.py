@@ -17,6 +17,8 @@ from agent.planner import Planner
 from agent.picker import Picker
 from agent.verifier import Verifier
 from agent.working_set import WorkingSetBuilder
+from agent.sequence_analyzer import SequenceAnalyzer
+from ingest.gemini_analyzer import GeminiAnalyzer
 from storage.database import ShotsDatabase
 from storage.vector_index import VectorIndex
 
@@ -48,17 +50,50 @@ class AgentOrchestrator:
         self.database = database
         self.vector_index = vector_index
         self.llm_client = llm_client
-        self.config = config
+        self.config = config or {}
         
         # Initialize working set builder with semantic search
         self.working_set_builder = WorkingSetBuilder(database, vector_index, config)
         
+        # Initialize sequence analyzer if enabled
+        sequence_analyzer = None
+        gemini_analyzer = None
+        
+        gemini_config = self.config.get('gemini', {})
+        if gemini_config.get('picking', {}).get('enabled', False):
+            try:
+                # Initialize SequenceAnalyzer
+                sequence_analyzer = SequenceAnalyzer(database, vector_index, self.config)
+                logger.info("[ORCHESTRATOR] SequenceAnalyzer initialized")
+                
+                # Initialize GeminiAnalyzer
+                gemini_analyzer = GeminiAnalyzer(self.config)
+                if gemini_analyzer.enabled:
+                    logger.info("[ORCHESTRATOR] GeminiAnalyzer initialized for sequence picking")
+                else:
+                    logger.warning("[ORCHESTRATOR] GeminiAnalyzer disabled, sequence picking unavailable")
+                    sequence_analyzer = None
+                    gemini_analyzer = None
+            except Exception as e:
+                logger.warning(f"[ORCHESTRATOR] Failed to initialize sequence analysis: {e}")
+                sequence_analyzer = None
+                gemini_analyzer = None
+        
         # Initialize agents
         self.planner = Planner(llm_client, self.working_set_builder)
-        self.picker = Picker(llm_client, self.working_set_builder)
+        self.picker = Picker(
+            llm_client,
+            self.working_set_builder,
+            sequence_analyzer=sequence_analyzer,
+            gemini_analyzer=gemini_analyzer,
+            config=self.config
+        )
         self.verifier = Verifier(llm_client)
         
-        logger.info("[ORCHESTRATOR] Initialized with all agents and semantic search")
+        if sequence_analyzer and gemini_analyzer:
+            logger.info("[ORCHESTRATOR] Initialized with sequence-based visual analysis")
+        else:
+            logger.info("[ORCHESTRATOR] Initialized with all agents and semantic search")
     
     def compile_edit(self,
                     story_slug: str,
