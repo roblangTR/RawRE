@@ -340,6 +340,125 @@ Return verification report as JSON:
 Be thorough, specific, and constructive. For each issue, cite the specific shots involved and explain which of the 6 elements are missing."""
 
 
+# Gemini sequence analysis prompt
+def get_sequence_analysis_prompt(sequence_name: str, shots_info: str) -> str:
+    """
+    Generate a Gemini prompt for analyzing a sequence of shots for visual continuity.
+    
+    Args:
+        sequence_name: Name of the sequence being analyzed
+        shots_info: Formatted string with shot information
+        
+    Returns:
+        Prompt string for Gemini
+    """
+    return f"""You are an expert video editor analyzing a sequence of shots for visual continuity and editorial flow.
+
+## Sequence: {sequence_name}
+
+## Shots in This Sequence:
+{shots_info}
+
+## Your Task
+
+Analyze this sequence of shots for visual continuity, transition quality, and editorial effectiveness. For each shot, assess:
+
+1. **Visual Characteristics**: Shot size, composition, camera movement, subjects, lighting
+2. **Quality Score**: Overall visual quality (0-10 scale)
+3. **Compatibility**: Which other shots in this sequence work well together
+4. **Warnings**: Identify potential jump cuts or problematic transitions
+
+Then provide:
+- **Recommended subsequences**: Optimal shot progressions (e.g., wide → medium → close)
+- **Entry points**: Best shots to start this sequence
+- **Exit points**: Best shots to end this sequence
+- **Overall warnings**: Any continuity issues to watch for
+
+## Response Format
+
+Provide a JSON response with this structure:
+
+```json
+{{
+  "sequence_name": "{sequence_name}",
+  "shots": {{
+    "shot_123": {{
+      "quality_score": 8.5,
+      "characteristics": {{
+        "shot_size": "medium",
+        "composition": "rule of thirds, subject left",
+        "camera_movement": "static",
+        "subjects": ["person", "building"],
+        "lighting": "natural outdoor, bright",
+        "action": "person walking toward camera"
+      }},
+      "works_well_with": [124, 125],
+      "avoid_with": [127],
+      "notes": "Strong establishing shot, good entry point"
+    }}
+  }},
+  "recommended_subsequences": [
+    {{
+      "shots": [123, 124, 125],
+      "reason": "Natural progression: wide establishing → medium action → close-up detail",
+      "total_duration": 12.5,
+      "flow_score": 9
+    }}
+  ],
+  "entry_points": [
+    {{
+      "shot_id": 123,
+      "reason": "Wide establishing shot, clear context",
+      "quality": "excellent"
+    }}
+  ],
+  "exit_points": [
+    {{
+      "shot_id": 126,
+      "reason": "Natural conclusion, subject exits frame",
+      "quality": "good"
+    }}
+  ],
+  "warnings": [
+    {{
+      "type": "jump_cut",
+      "shots": [124, 127],
+      "severity": "high",
+      "description": "Both shots are similar medium shots with minimal angle change",
+      "suggestion": "Insert shot 125 (close-up) between them or use different shots"
+    }},
+    {{
+      "type": "continuity",
+      "shots": [125, 126],
+      "severity": "medium",
+      "description": "Lighting change from bright outdoor to darker interior",
+      "suggestion": "Consider adding transitional shot or reordering"
+    }}
+  ],
+  "overall_assessment": {{
+    "sequence_quality": 7.5,
+    "shot_variety": "good",
+    "continuity_score": 8,
+    "recommended_for_picking": true,
+    "notes": "Strong sequence with good variety, watch for the jump cut between 124 and 127"
+  }}
+}}
+```
+
+## Key Principles
+
+1. **Jump Cut Detection**: Flag shots with similar framing and minimal angle change (less than 30 degrees)
+2. **Shot Progression**: Look for natural progressions (wide → medium → close, or reverse)
+3. **Continuity**: Check for consistency in lighting, screen direction, subject position
+4. **Variety**: Assess shot size variety and visual diversity
+5. **Entry/Exit**: Identify shots that naturally begin or conclude the sequence
+6. **Compatibility**: Note which shots transition smoothly together
+
+Be specific and actionable. Your analysis will guide the editorial selection process.
+
+Respond ONLY with the JSON object, no additional text or markdown formatting."""
+
+
 # Helper function to get appropriate prompt
 def get_system_prompt(role: str = "agent") -> str:
     """

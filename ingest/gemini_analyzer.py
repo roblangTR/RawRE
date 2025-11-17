@@ -429,3 +429,161 @@ Respond ONLY with the JSON object, no additional text or markdown formatting."""
         logger.info(f"[GEMINI] Batch complete: {successful}/{len(shots_data)} successful")
         
         return results
+    
+    def analyze_sequence_for_picking(self, 
+                                    sequence_name: str,
+                                    shots: list[Dict[str, Any]],
+                                    video_paths: list[str],
+                                    proxy_paths: Optional[list[str]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Analyze a sequence of shots for visual continuity and transition quality.
+        
+        This method is used during the picking phase to understand how shots within
+        a sequence work together, identify jump cuts, and recommend optimal subsequences.
+        
+        Args:
+            sequence_name: Name of the sequence being analyzed
+            shots: List of shot dictionaries with metadata
+            video_paths: List of video file paths for each shot
+            proxy_paths: Optional list of proxy video paths
+            
+        Returns:
+            Dictionary with sequence analysis including:
+            - Shot-level assessments (quality, characteristics, compatibility)
+            - Recommended subsequences
+            - Entry/exit points
+            - Jump cut warnings
+            - Overall sequence quality
+        """
+        if not self.enabled:
+            logger.debug("[GEMINI] Sequence analysis disabled, skipping")
+            return None
+        
+        if not shots:
+            logger.warning("[GEMINI] No shots provided for sequence analysis")
+            return None
+        
+        try:
+            # Import here to avoid circular dependency
+            from agent.system_prompts import get_sequence_analysis_prompt
+            
+            # Format shot information for the prompt
+            shots_info_lines = []
+            for i, shot in enumerate(shots, 1):
+                shot_id = shot.get('shot_id', i)
+                duration = shot.get('duration_ms', 0) / 1000.0
+                shot_type = shot.get('shot_type', 'unknown')
+                shot_size = shot.get('shot_size', 'unknown')
+                gemini_desc = shot.get('gemini_context', 'No description')
+                
+                shots_info_lines.append(
+                    f"Shot {shot_id}:\n"
+                    f"  Duration: {duration:.1f}s\n"
+                    f"  Type: {shot_type}\n"
+                    f"  Size: {shot_size}\n"
+                    f"  Description: {gemini_desc}\n"
+                )
+            
+            shots_info = "\n".join(shots_info_lines)
+            
+            # Build the analysis prompt
+            user_prompt = get_sequence_analysis_prompt(sequence_name, shots_info)
+            
+            # For sequence analysis, we'll analyze using the first shot's video
+            # (Gemini can infer relationships from context + descriptions)
+            video_path = video_paths[0] if video_paths else None
+            proxy_path = proxy_paths[0] if proxy_paths and len(proxy_paths) > 0 else None
+            
+            if not video_path:
+                logger.warning("[GEMINI] No video path for sequence analysis")
+                return None
+            
+            # Determine which file to analyze
+            analysis_path = video_path
+            if proxy_path and Path(proxy_path).exists():
+                analysis_path = proxy_path
+            
+            if not Path(analysis_path).exists():
+                logger.warning(f"[GEMINI] Video file not found: {analysis_path}")
+                return None
+            
+            logger.info(f"[GEMINI] Analyzing sequence '{sequence_name}' ({len(shots)} shots)")
+            
+            # Analyze via Open Arena
+            result = self._analyze_video_openarena(analysis_path, user_prompt)
+            
+            # Validate sequence analysis result
+            if not isinstance(result, dict):
+                logger.warning("[GEMINI] Invalid sequence analysis result")
+                return None
+            
+            # Ensure required fields exist
+            if 'sequence_name' not in result:
+                result['sequence_name'] = sequence_name
+            
+            if 'shots' not in result:
+                logger.warning("[GEMINI] No shot-level analysis in result")
+                result['shots'] = {}
+            
+            logger.info(f"[GEMINI] ✓ Sequence '{sequence_name}' analyzed successfully")
+            return result
+        
+        except Exception as e:
+            logger.error(f"[GEMINI] Error analyzing sequence '{sequence_name}': {e}")
+            return None
+    
+    def analyze_all_sequences(self,
+                             sequences: Dict[str, list[Dict[str, Any]]],
+                             video_paths_map: Dict[str, list[str]],
+                             proxy_paths_map: Optional[Dict[str, list[str]]] = None) -> Dict[str, Optional[Dict[str, Any]]]:
+        """
+        Analyze all sequences in a batch for visual continuity.
+        
+        Args:
+            sequences: Dictionary mapping sequence names to lists of shots
+            video_paths_map: Dictionary mapping sequence names to lists of video paths
+            proxy_paths_map: Optional dictionary mapping sequence names to lists of proxy paths
+            
+        Returns:
+            Dictionary mapping sequence names to analysis results
+        """
+        if not self.enabled:
+            logger.info("[GEMINI] Sequence analysis disabled, returning empty results")
+            return {name: None for name in sequences.keys()}
+        
+        results = {}
+        sequence_count = len(sequences)
+        
+        # Get batch size from config (default to 6 sequences at a time)
+        batch_size = self.gemini_config.get('picking', {}).get('sequence_batch_size', 6)
+        
+        logger.info(f"[GEMINI] Analyzing {sequence_count} sequences (batch size: {batch_size})")
+        
+        for i, (seq_name, shots) in enumerate(sequences.items(), 1):
+            logger.info(f"[GEMINI] Processing sequence {i}/{sequence_count}: '{seq_name}'")
+            
+            # Get video and proxy paths for this sequence
+            video_paths = video_paths_map.get(seq_name, [])
+            proxy_paths = None
+            if proxy_paths_map:
+                proxy_paths = proxy_paths_map.get(seq_name)
+            
+            # Analyze the sequence
+            result = self.analyze_sequence_for_picking(
+                seq_name,
+                shots,
+                video_paths,
+                proxy_paths
+            )
+            
+            results[seq_name] = result
+            
+            # Small delay between sequences to avoid rate limiting
+            if i < sequence_count:
+                import time
+                time.sleep(0.5)
+        
+        successful = sum(1 for r in results.values() if r is not None)
+        logger.info(f"[GEMINI] Sequence analysis complete: {successful}/{sequence_count} successful")
+        
+        return results
