@@ -14,7 +14,7 @@ from pathlib import Path
 from ingest.orchestrator import IngestOrchestrator
 from storage.database import ShotsDatabase
 from storage.vector_index import VectorIndex
-from agent.llm_client import OpenArenaClient
+from agent.llm_client import ClaudeClient
 from agent.orchestrator import AgentOrchestrator
 from output.edl_writer import EDLWriter
 from output.fcpxml_writer import FCPXMLWriter
@@ -137,7 +137,7 @@ def cmd_compile(args):
         vector_dim = config.get('embeddings', {}).get('dimension', 384)
         vector_index = VectorIndex(dimension=vector_dim)
         
-        llm_client = OpenArenaClient()
+        llm_client = ClaudeClient()
         
         # Create orchestrator
         orchestrator = AgentOrchestrator(database, vector_index, llm_client)

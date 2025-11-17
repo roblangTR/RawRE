@@ -191,13 +191,14 @@ def test_filter_sequences(analyzer):
     # too_small should be moved to miscellaneous
     assert 'too_small' not in filtered
     assert 'miscellaneous' in filtered
-    assert len(filtered['miscellaneous']) == 1
+    # miscellaneous should have 1 from too_small + 3 trimmed from too_large = 4 total
+    assert len(filtered['miscellaneous']) == 4
     
     # just_right should remain unchanged
     assert 'just_right' in filtered
     assert len(filtered['just_right']) == 2
     
-    # too_large should be trimmed to max_shots_per_sequence
+    # too_large should be trimmed to max_shots_per_sequence (8 kept, 3 moved to miscellaneous)
     assert 'too_large' in filtered
     assert len(filtered['too_large']) == analyzer.max_shots_per_sequence
     
