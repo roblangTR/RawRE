@@ -81,6 +81,17 @@ gemini:
   enabled: true  # Set to true to enable Gemini analysis
   workflow_id: "81a571bb-1096-4156-bd09-5ee7fd9047ce"  # Open Arena Gemini workflow
   use_proxy_clips: true  # Send proxy videos instead of full resolution
+  picking:
+    enabled: true  # Enable sequence-based analysis for picking
+    sequence_grouping_method: "hybrid"  # location, temporal, visual, or hybrid
+    sequence_batch_size: 6  # Max shots per sequence for analysis
+
+# Sequence-based visual analysis
+sequences:
+  temporal_window_minutes: 5  # Time window for temporal grouping
+  visual_similarity_threshold: 0.7  # Similarity threshold for visual clustering (0.0-1.0)
+  min_shots_per_sequence: 2  # Minimum shots per sequence
+  max_shots_per_sequence: 8  # Maximum shots per sequence (for Gemini analysis)
 
 # Output formats
 output:
